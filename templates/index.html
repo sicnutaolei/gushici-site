@@ -20,7 +20,7 @@
       <div class="poem-card-head">
         <a class="poem-title" href="{{ url_for('poem_detail', poem_id=poem.id) }}">{{ poem.title }}</a>
         {% if poem.id in fav_ids %}<span class="fav-mark" title="我喜欢">♥</span>{% endif %}
-        <span class="poem-meta">{{ poem.author }} · {{ poem.dynasty }}</span>
+        <span class="poem-meta"><a class="author-link" href="{{ url_for('author_view', name=poem.author) }}">{{ poem.author }}</a> · {{ poem.dynasty }}</span>
       </div>
       <div class="poem-excerpt">{{ poem.content.split('\n\n')[0] }}</div>
       <div class="poem-card-foot">

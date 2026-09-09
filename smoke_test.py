@@ -96,7 +96,17 @@ check("详情页上一篇导航", c.get("/poem/2"), 200, "上一篇")
 # 11. 个人数据导出（登录 tester，之前收藏过静夜思并写了笔记）
 check("导出JSON", c.get("/export"), 200, "静夜思")
 
-# 12. 404 页面
+# 12. 作者聚合页
+check("作者页", c.get("/author/李白"), 200, "共")
+check("作者页仅该作者", c.get("/author/李白"), 200, "静夜思")
+
+# 13. 学习统计（tester 已收藏静夜思+标签，未登录时重定向）
+c.get("/logout")
+check("未登录访问统计重定向", c.get("/stats"), 302)
+c.post("/login", data={"username": "tester", "password": "xyz98765"})
+check("统计页", c.get("/stats"), 200, "标签分布")
+
+# 14. 404 页面
 check("不存在的诗词404", c.get("/poem/99999"), 404)
 
 print()

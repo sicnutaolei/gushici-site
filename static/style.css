@@ -325,6 +325,33 @@ code {
   padding: 1px 6px; font-size: 13px;
 }
 
+/* ---------- 统计页 / 作者页 ---------- */
+.page-title-sub { font-size: 14px; color: var(--ink-light); font-family: inherit; margin-left: 8px; }
+.author-dynasty {
+  display: inline-block; font-size: 13px; color: var(--vermilion);
+  border: 1px solid var(--vermilion); border-radius: 999px;
+  padding: 0 10px; margin-left: 6px; vertical-align: middle;
+}
+.author-link { color: inherit; }
+.author-link:hover { color: var(--vermilion); text-decoration: underline; }
+.stat-cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat-card {
+  flex: 1; min-width: 150px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 16px 20px; border-top: 3px solid var(--vermilion);
+}
+.stat-num { font-size: 32px; font-weight: bold; color: var(--vermilion-dark); line-height: 1.2; }
+.stat-label { font-size: 14px; color: var(--ink); margin-top: 2px; }
+.stat-sub { font-size: 12px; color: var(--ink-light); margin-top: 4px; }
+.bar-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+.bar-name {
+  width: 90px; text-align: right; font-size: 14px; color: var(--ink);
+  flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bar-track { flex: 1; height: 14px; background: #f0ebdd; border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--vermilion); border-radius: 999px; min-width: 6px; }
+.bar-fill-gold { background: var(--gold); }
+.bar-count { width: 30px; font-size: 13px; color: var(--ink-light); }
+
 /* ---------- 页脚 ---------- */
 .site-footer {
   border-top: 1px solid var(--border); margin-top: 30px;

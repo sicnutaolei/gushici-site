@@ -173,6 +173,53 @@ def tag_view(name):
     return render_template("tag.html", tag=name, records=records)
 
 
+@app.route("/author/<name>")
+def author_view(name):
+    poems = Poem.query.filter(Poem.author == name).order_by(Poem.id).all()
+    user = current_user()
+    fav_ids = set()
+    if user:
+        rows = UserPoem.query.filter_by(user_id=user.id, is_favorite=True).all()
+        fav_ids = {r.poem_id for r in rows}
+    dynasties = sorted({p.dynasty for p in poems})
+    return render_template("author.html", name=name, poems=poems,
+                           fav_ids=fav_ids, dynasties=dynasties)
+
+
+@app.route("/stats")
+@login_required
+def stats():
+    """个人学习统计：收藏数、笔记数、标签分布、朝代分布"""
+    uid = current_user().id
+    records = UserPoem.query.filter_by(user_id=uid).all()
+    fav_count = sum(1 for r in records if r.is_favorite)
+    note_count = sum(1 for r in records if r.note)
+    tagged_count = sum(1 for r in records if r.tags)
+
+    tag_stat = {}
+    for r in records:
+        for t in r.tag_list():
+            tag_stat[t] = tag_stat.get(t, 0) + 1
+    tags_sorted = sorted(tag_stat.items(), key=lambda x: -x[1])
+
+    dynasty_stat = {}
+    for r in records:
+        if r.is_favorite or r.note or r.tags:
+            d = r.poem.dynasty
+            dynasty_stat[d] = dynasty_stat.get(d, 0) + 1
+    dynasty_sorted = sorted(dynasty_stat.items(), key=lambda x: -x[1])
+
+    max_tag = tags_sorted[0][1] if tags_sorted else 0
+    max_dyn = dynasty_sorted[0][1] if dynasty_sorted else 0
+    total = Poem.query.count()
+    touched = len({r.poem_id for r in records if r.is_favorite or r.note or r.tags})
+
+    return render_template("stats.html", fav_count=fav_count, note_count=note_count,
+                           tagged_count=tagged_count, tags_sorted=tags_sorted,
+                           dynasty_sorted=dynasty_sorted, max_tag=max_tag,
+                           max_dyn=max_dyn, total=total, touched=touched)
+
+
 @app.route("/export")
 @login_required
 def export_data():

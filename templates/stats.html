@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}学习统计 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">我的学习统计</h1>
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-num">{{ touched }}</div>
+    <div class="stat-label">学过 / 标记过</div>
+    <div class="stat-sub">共 {{ total }} 首 · 覆盖 {{ '%.0f'|format(touched * 100 / total if total else 0) }}%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ fav_count }}</div>
+    <div class="stat-label">喜欢的诗词</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ note_count }}</div>
+    <div class="stat-label">写过笔记</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ tags_sorted|length }}</div>
+    <div class="stat-label">个标签</div>
+  </div>
+</div>
+
+<div class="layout">
+  <section class="main-col">
+    <div class="admin-section">
+      <h2>标签分布</h2>
+      {% if tags_sorted %}
+      {% for tag, count in tags_sorted %}
+      <div class="bar-row">
+        <a class="bar-name" href="{{ url_for('tag_view', name=tag) }}">{{ tag }}</a>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: {{ (count * 100 / max_tag)|round(0, 'floor') }}%"></div>
+        </div>
+        <span class="bar-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="side-text">还没有使用标签。在诗词详情页给诗词打上标签（如「必背」「已背会」），这里会显示分布。</p>
+      {% endif %}
+    </div>
+
+    <div class="admin-section">
+      <h2>朝代分布（我标记过的诗词）</h2>
+      {% if dynasty_sorted %}
+      {% for d, count in dynasty_sorted %}
+      <div class="bar-row">
+        <a class="bar-name" href="{{ url_for('index', dynasty=d) }}">{{ d }}</a>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill-gold" style="width: {{ (count * 100 / max_dyn)|round(0, 'floor') }}%"></div>
+        </div>
+        <span class="bar-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="side-text">先去收藏几首或写点笔记吧。</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <aside class="side-col">
+    <div class="side-card">
+      <h3 class="side-title">提示</h3>
+      <p class="side-text">「学过 / 标记过」= 收藏过、写过笔记或打过标签的诗词数量。多背多记，让比例涨起来。</p>
+      <a class="btn-ghost" href="{{ url_for('export_data') }}">导出我的数据 (JSON)</a>
+    </div>
+  </aside>
+</div>
+{% endblock %}

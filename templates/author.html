@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ name }}的诗词 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ name }}
+  {% for d in dynasties %}<span class="author-dynasty">{{ d }}</span>{% endfor %}
+  <span class="page-title-sub">共 {{ poems|length }} 首</span>
+</h1>
+{% for poem in poems %}
+<article class="poem-card">
+  <div class="poem-card-head">
+    <a class="poem-title" href="{{ url_for('poem_detail', poem_id=poem.id) }}">{{ poem.title }}</a>
+    {% if poem.id in fav_ids %}<span class="fav-mark" title="我喜欢">♥</span>{% endif %}
+    <span class="poem-meta">{{ poem.dynasty }}</span>
+  </div>
+  <div class="poem-excerpt">{{ poem.content.split('\n\n')[0] }}</div>
+</article>
+{% else %}
+<div class="empty-tip">该作者暂无收录诗词。</div>
+{% endfor %}
+{% endblock %}
