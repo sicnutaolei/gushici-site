@@ -106,7 +106,12 @@ check("未登录访问统计重定向", c.get("/stats"), 302)
 c.post("/login", data={"username": "tester", "password": "xyz98765"})
 check("统计页", c.get("/stats"), 200, "标签分布")
 
-# 14. 404 页面
+# 15. 每日一诗：重定向到详情页
+r = c.get("/daily")
+check("每日一诗重定向", r, 302)
+check("每日一诗落地页", c.get(r.headers.get("Location", "/"), follow_redirects=True), 200)
+
+# 16. 404 页面
 check("不存在的诗词404", c.get("/poem/99999"), 404)
 
 print()

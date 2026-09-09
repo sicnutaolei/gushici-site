@@ -199,6 +199,10 @@ a:hover { color: var(--vermilion-dark); }
   border-bottom: 1px solid var(--border); padding-bottom: 8px;
 }
 .side-text { font-size: 13px; color: var(--ink-light); margin-bottom: 12px; }
+.side-card-daily {
+  background: linear-gradient(135deg, #fffdf8, #f9f0e2);
+  border-color: #e8d9b8;
+}
 .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag {
   display: inline-block; padding: 3px 12px; font-size: 13px;

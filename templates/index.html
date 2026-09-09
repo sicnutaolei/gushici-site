@@ -54,6 +54,11 @@
         {% endfor %}
       </div>
     </div>
+    <div class="side-card side-card-daily">
+      <h3 class="side-title">每日一诗</h3>
+      <p class="side-text">今天，与这首诗相逢。</p>
+      <a class="btn-primary" href="{{ url_for('daily') }}">看看今天是哪一首</a>
+    </div>
     {% if cur_user %}
     <div class="side-card">
       <h3 class="side-title">快速入口</h3>

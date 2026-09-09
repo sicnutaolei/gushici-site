@@ -173,6 +173,18 @@ def tag_view(name):
     return render_template("tag.html", tag=name, records=records)
 
 
+@app.route("/daily")
+def daily():
+    """每日一诗：同一天所有人看到同一首（按日期序数取模）"""
+    total = Poem.query.count()
+    if total == 0:
+        flash("诗词库为空", "warning")
+        return redirect(url_for("index"))
+    offset = datetime.now().toordinal() % total
+    poem = Poem.query.order_by(Poem.id).offset(offset).first()
+    return redirect(url_for("poem_detail", poem_id=poem.id))
+
+
 @app.route("/author/<name>")
 def author_view(name):
     poems = Poem.query.filter(Poem.author == name).order_by(Poem.id).all()
