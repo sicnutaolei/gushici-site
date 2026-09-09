@@ -18,7 +18,10 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "please-change-this-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(DATA_DIR, "poems.db")
+# 可通过环境变量 POEMS_DB_PATH 指定数据库文件（测试时指向独立文件，避免影响真实数据）
+db_path = os.environ.get("POEMS_DB_PATH", os.path.join(DATA_DIR, "poems.db"))
+os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)

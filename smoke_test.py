@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
-"""冒烟测试：用 Flask test client 走一遍核心路由，不需要启动真实服务器"""
-import sys, io
+"""冒烟测试：用 Flask test client 走一遍核心路由，不需要启动真实服务器
+
+使用独立测试数据库（data/smoke_test.db），绝不触碰真实数据 poems.db。
+"""
+import sys, io, os
+
+os.environ["POEMS_DB_PATH"] = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "data", "smoke_test.db")
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from app import app, init_db
 
-# 每次测试重建数据库（不依赖删除 db 文件，规避环境安全删除限制）
+# 每次测试重建测试数据库（不依赖删除 db 文件，规避环境安全删除限制）
 init_db(reset=True)
 
 c = app.test_client()
