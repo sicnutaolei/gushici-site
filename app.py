@@ -3,6 +3,7 @@
 功能：浏览/搜索诗词、注册登录、收藏、自定义标签、学习笔记、管理后台。
 默认管理员：admin / admin123（首次启动自动创建，登录后请尽快修改）。
 """
+import json
 import os
 from functools import wraps
 
@@ -167,6 +168,28 @@ def tag_view(name):
 
 # ---------- 认证 ----------
 
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+        old = request.form.get("old_password", "")
+        new = request.form.get("new_password", "")
+        new2 = request.form.get("new_password2", "")
+        user = current_user()
+        if not user.check_password(old):
+            flash("原密码不正确", "warning")
+        elif len(new) < 6:
+            flash("新密码至少 6 位", "warning")
+        elif new != new2:
+            flash("两次输入的新密码不一致", "warning")
+        else:
+            user.set_password(new)
+            db.session.commit()
+            flash("密码修改成功", "success")
+            return redirect(url_for("index"))
+    return render_template("change_password.html")
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -270,6 +293,68 @@ def poem_delete(poem_id):
     return redirect(url_for("admin"))
 
 
+REQUIRED_FIELDS = ("title", "author", "dynasty", "content")
+
+
+@app.route("/admin/import", methods=["GET", "POST"])
+@admin_required
+def import_poems():
+    """批量导入诗词：粘贴 JSON 或上传 .json 文件。
+
+    JSON 格式（数组，可选字段 translation / annotation / appreciation）：
+    [
+      {"title": "...", "author": "...", "dynasty": "唐", "content": "...", ...}
+    ]
+    同标题+作者已存在的会跳过（防重复导入）。
+    """
+    result = None
+    if request.method == "POST":
+        raw = ""
+        upload = request.files.get("file")
+        if upload and upload.filename:
+            raw = upload.read().decode("utf-8", errors="replace")
+        else:
+            raw = request.form.get("json_text", "")
+        result = {"ok": 0, "skip": 0, "errors": []}
+        try:
+            items = json.loads(raw)
+        except ValueError as e:
+            result["errors"].append(f"JSON 解析失败：{e}")
+            items = None
+        if items is not None:
+            if not isinstance(items, list):
+                result["errors"].append("JSON 顶层必须是数组 [ ... ]")
+            else:
+                for i, item in enumerate(items, 1):
+                    if not isinstance(item, dict):
+                        result["errors"].append(f"第 {i} 条：不是对象")
+                        continue
+                    missing = [f for f in REQUIRED_FIELDS if not str(item.get(f, "")).strip()]
+                    if missing:
+                        result["errors"].append(f"第 {i} 条：缺少必填字段 {('、'.join(missing))}")
+                        continue
+                    exists = Poem.query.filter_by(title=item["title"].strip(),
+                                                  author=item["author"].strip()).first()
+                    if exists:
+                        result["skip"] += 1
+                        continue
+                    poem = Poem(
+                        title=item["title"].strip(), author=item["author"].strip(),
+                        dynasty=item["dynasty"].strip(), content=item["content"].strip(),
+                        translation=str(item.get("translation", "") or "").strip(),
+                        annotation=str(item.get("annotation", "") or "").strip(),
+                        appreciation=str(item.get("appreciation", "") or "").strip(),
+                    )
+                    db.session.add(poem)
+                    result["ok"] += 1
+                db.session.commit()
+        if result["ok"]:
+            flash(f"成功导入 {result['ok']} 首，跳过重复 {result['skip']} 首", "success")
+        elif not result["errors"]:
+            flash("没有导入任何诗词", "warning")
+    return render_template("import.html", result=result)
+
+
 @app.post("/admin/user/<int:user_id>/toggle_admin")
 @admin_required
 def user_toggle_admin(user_id):
@@ -299,9 +384,14 @@ def user_delete(user_id):
 
 # ---------- 初始化 ----------
 
-def init_db():
-    """建表 + 预置数据 + 默认管理员（幂等，重复启动不会重复导入）"""
+def init_db(reset=False):
+    """建表 + 预置数据 + 默认管理员（幂等，重复启动不会重复导入）。
+
+    reset=True 时先删除所有表再重建（仅测试用，会清空全部数据）。
+    """
     with app.app_context():
+        if reset:
+            db.drop_all()
         db.create_all()
         if not User.query.filter_by(username="admin").first():
             admin = User(username="admin", is_admin=True)

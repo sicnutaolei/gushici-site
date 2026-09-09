@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}批量导入诗词 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">批量导入诗词</h1>
+
+<div class="poem-form-card">
+  <p class="side-text" style="margin-bottom:16px">
+    支持<strong>粘贴 JSON</strong> 或<strong>上传 .json 文件</strong>。顶层为数组，
+    必填字段：<code>title</code>、<code>author</code>、<code>dynasty</code>、<code>content</code>；
+    可选字段：<code>translation</code>（译文）、<code>annotation</code>（注释）、<code>appreciation</code>（赏析）。
+    标题 + 作者已存在的会自动跳过，不会重复导入。
+  </p>
+  <p class="side-text" style="margin-bottom:16px"><strong>示例：</strong></p>
+  <pre class="import-example">[
+  {
+    "title": "枫桥夜泊",
+    "author": "张继",
+    "dynasty": "唐",
+    "content": "月落乌啼霜满天，江枫渔火对愁眠。\n姑苏城外寒山寺，夜半钟声到客船。",
+    "translation": "……",
+    "annotation": "……",
+    "appreciation": "……"
+  }
+]</pre>
+
+  {% if result and result.errors %}
+  <div class="import-errors">
+    <p><strong>导入过程中出现 {{ result.errors|length }} 个问题：</strong></p>
+    <ul>
+      {% for e in result.errors[:20] %}<li>{{ e }}</li>{% endfor %}
+      {% if result.errors|length > 20 %}<li>…… 其余 {{ result.errors|length - 20 }} 条省略</li>{% endif %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    <label class="form-label">上传 JSON 文件</label>
+    <input type="file" name="file" accept=".json,.txt">
+    <label class="form-label">或直接粘贴 JSON</label>
+    <textarea name="json_text" rows="10" placeholder='[{"title": "...", "author": "...", "dynasty": "唐", "content": "..."}]'></textarea>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">开始导入</button>
+      <a class="btn-ghost" href="{{ url_for('admin') }}">返回后台</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

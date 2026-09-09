@@ -30,6 +30,7 @@
         <button type="submit">搜索</button>
       </form>
       {% if cur_user %}
+      <a class="link-plain" href="{{ url_for('change_password') }}">改密码</a>
       <span class="user-badge">{{ cur_user.username }}</span>
       <a class="link-plain" href="{{ url_for('logout') }}">退出</a>
       {% else %}

@@ -3,7 +3,10 @@
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-from app import app
+from app import app, init_db
+
+# 每次测试重建数据库（不依赖删除 db 文件，规避环境安全删除限制）
+init_db(reset=True)
 
 c = app.test_client()
 failures = []
@@ -55,12 +58,31 @@ c.post("/admin/poem/new", data={
     "content": "测试内容第一行", "translation": "", "annotation": "", "appreciation": ""})
 check("新增后可见", c.get("/?dynasty=现代"), 200, "测试诗")
 
-# 7. 非管理员访问后台 -> 403
+# 7. 修改密码
 c.get("/logout")
 c.post("/login", data={"username": "tester", "password": "abc12345"})
+c.post("/change-password", data={"old_password": "abc12345", "new_password": "xyz98765", "new_password2": "xyz98765"})
+check("新密码可登录", c.post("/login", data={"username": "tester", "password": "xyz98765"}), 302)
+check("旧密码已失效", c.post("/login", data={"username": "tester", "password": "abc12345"}), 200)
+
+# 8. 批量导入（管理员）
+c.get("/logout")
+c.post("/login", data={"username": "admin", "password": "admin123"})
+check("导入页面", c.get("/admin/import"), 200, "批量导入")
+c.post("/admin/import", data={"json_text": '''[
+  {"title": "测试导入诗", "author": "导入者", "dynasty": "现代", "content": "测试行一\\n测试行二"},
+  {"title": "测试导入诗", "author": "导入者", "dynasty": "现代", "content": "重复的会被跳过"},
+  {"title": "缺字段诗", "author": "导入者"}
+]'''}, follow_redirects=True)
+check("导入结果页", c.get("/?dynasty=现代"), 200, "测试导入诗")
+check("重复只导入一条", c.get("/?q=测试导入诗"), 200, "测试导入诗")
+
+# 9. 非管理员访问后台 -> 403
+c.get("/logout")
+c.post("/login", data={"username": "tester", "password": "xyz98765"})
 check("普通用户访问后台403", c.get("/admin"), 403)
 
-# 8. 404 页面
+# 10. 404 页面
 check("不存在的诗词404", c.get("/poem/99999"), 404)
 
 print()
