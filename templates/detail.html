@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ poem.title }} · {{ poem.author }} - 拾遗集{% endblock %}
+{% block content %}
+<div class="layout">
+  <section class="main-col">
+    <article class="poem-detail">
+      <h1 class="detail-title">{{ poem.title }}</h1>
+      <p class="detail-author">
+        {{ poem.dynasty }} · <span class="detail-author-name">{{ poem.author }}</span>
+        {% if record and record.is_favorite %}<span class="fav-mark">♥ 我喜欢的</span>{% endif %}
+      </p>
+
+      <div class="poem-content">
+        {% for line in poem.content.split('\n') %}
+          {% if line.strip() %}<p class="poem-line">{{ line }}</p>{% else %}<p class="poem-gap">&nbsp;</p>{% endif %}
+        {% endfor %}
+      </div>
+
+      {% if poem.translation %}
+      <div class="zhaiyao">
+        <h2 class="zhaiyao-head">译文</h2>
+        <div class="zhaiyao-body">{{ poem.translation }}</div>
+      </div>
+      {% endif %}
+      {% if poem.annotation %}
+      <div class="zhaiyao">
+        <h2 class="zhaiyao-head">注释</h2>
+        <div class="zhaiyao-body">{{ poem.annotation }}</div>
+      </div>
+      {% endif %}
+      {% if poem.appreciation %}
+      <div class="zhaiyao">
+        <h2 class="zhaiyao-head">赏析</h2>
+        <div class="zhaiyao-body">{{ poem.appreciation }}</div>
+      </div>
+      {% endif %}
+
+      <div class="detail-back">
+        <a class="link-plain" href="{{ url_for('index') }}">← 返回首页</a>
+      </div>
+    </article>
+  </section>
+
+  <aside class="side-col">
+    <div class="side-card">
+      <h3 class="side-title">我的学习记录</h3>
+      {% if cur_user %}
+      <form method="post" action="{{ url_for('toggle_favorite', poem_id=poem.id) }}" class="fav-form">
+        {% if record and record.is_favorite %}
+        <button type="submit" class="btn-fav btn-fav-on">♥ 已喜欢（点击取消）</button>
+        {% else %}
+        <button type="submit" class="btn-fav">♡ 加入喜欢</button>
+        {% endif %}
+      </form>
+
+      <form method="post" action="{{ url_for('save_note', poem_id=poem.id) }}" class="note-form">
+        <label class="form-label">标签（用逗号分隔，如：必背,思乡）</label>
+        <input type="text" name="tags" value="{{ record.tags if record else '' }}" placeholder="例：必背,已背会,思乡">
+        <label class="form-label">学习笔记</label>
+        <textarea name="note" rows="6" placeholder="写下你的理解、心得、背诵记录…">{{ record.note if record else '' }}</textarea>
+        <button type="submit" class="btn-primary">保存笔记与标签</button>
+      </form>
+      {% if record and record.tag_list() %}
+      <div class="tag-cloud note-tags">
+        {% for t in record.tag_list() %}
+        <a class="tag" href="{{ url_for('tag_view', name=t) }}">{{ t }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <p class="side-text">登录后可以收藏诗词、写学习笔记。</p>
+      <a class="btn-primary" href="{{ url_for('login', next=request.path) }}">登录</a>
+      <a class="btn-ghost" href="{{ url_for('register') }}">注册</a>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

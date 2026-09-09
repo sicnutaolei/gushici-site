@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    container_name: gushici-site
+    restart: unless-stopped
+    ports:
+      - "8080:5000"          # 左边是宿主机端口，按需修改
+    environment:
+      # 生产环境务必改成随机长字符串
+      - SECRET_KEY=please-change-this-secret-key
+    volumes:
+      - ./data:/app/data     # SQLite 数据库持久化到宿主机

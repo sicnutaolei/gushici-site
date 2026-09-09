@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="layout">
+  <section class="main-col">
+    <div class="hero-card">
+      <h1 class="hero-title">不积跬步，无以至千里</h1>
+      <p class="hero-sub">共收录 {{ total }} 首诗词 · 记录每一首学过的和喜欢的</p>
+    </div>
+
+    {% if q or dynasty %}
+    <div class="filter-bar">
+      {% if q %}<span>搜索「{{ q }}」</span>{% endif %}
+      {% if dynasty %}<span>朝代：{{ dynasty }}</span>{% endif %}
+      <a class="filter-clear" href="{{ url_for('index') }}">清除筛选</a>
+    </div>
+    {% endif %}
+
+    {% for poem in poems %}
+    <article class="poem-card">
+      <div class="poem-card-head">
+        <a class="poem-title" href="{{ url_for('poem_detail', poem_id=poem.id) }}">{{ poem.title }}</a>
+        {% if poem.id in fav_ids %}<span class="fav-mark" title="我喜欢">♥</span>{% endif %}
+        <span class="poem-meta">{{ poem.author }} · {{ poem.dynasty }}</span>
+      </div>
+      <div class="poem-excerpt">{{ poem.content.split('\n\n')[0] }}</div>
+      <div class="poem-card-foot">
+        <a class="link-more" href="{{ url_for('poem_detail', poem_id=poem.id) }}">阅读全文 →</a>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-tip">没有找到符合条件的诗词</div>
+    {% endfor %}
+
+    {% if pagination.pages > 1 %}
+    <div class="pager">
+      {% if pagination.has_prev %}
+      <a href="{{ url_for('index', page=pagination.prev_num, q=q, dynasty=dynasty) }}">上一页</a>
+      {% endif %}
+      <span class="pager-info">第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
+      {% if pagination.has_next %}
+      <a href="{{ url_for('index', page=pagination.next_num, q=q, dynasty=dynasty) }}">下一页</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="side-col">
+    <div class="side-card">
+      <h3 class="side-title">朝代筛选</h3>
+      <div class="tag-cloud">
+        <a class="tag {{ 'tag-active' if dynasty == '' and not q }}" href="{{ url_for('index') }}">全部</a>
+        {% for d in dynasties %}
+        <a class="tag {{ 'tag-active' if dynasty == d }}" href="{{ url_for('index', dynasty=d) }}">{{ d }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% if cur_user %}
+    <div class="side-card">
+      <h3 class="side-title">快速入口</h3>
+      <ul class="quick-links">
+        <li><a href="{{ url_for('favorites') }}">♥ 我的喜欢</a></li>
+        <li><a href="{{ url_for('notes') }}">✎ 学习笔记</a></li>
+      </ul>
+    </div>
+    {% else %}
+    <div class="side-card">
+      <h3 class="side-title">加入拾遗集</h3>
+      <p class="side-text">注册账号，收藏你喜欢的诗词，写下自己的学习笔记。</p>
+      <a class="btn-primary" href="{{ url_for('register') }}">立即注册</a>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

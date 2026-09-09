@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}标签「{{ tag }}」- 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">标签「{{ tag }}」下的诗词</h1>
+{% for r in records %}
+<article class="poem-card">
+  <div class="poem-card-head">
+    <a class="poem-title" href="{{ url_for('poem_detail', poem_id=r.poem_id) }}">{{ r.poem.title }}</a>
+    <span class="poem-meta">{{ r.poem.author }} · {{ r.poem.dynasty }}</span>
+  </div>
+  <div class="poem-excerpt">{{ r.poem.content.split('\n')[0] }}</div>
+  {% if r.note %}<div class="note-body">{{ r.note }}</div>{% endif %}
+</article>
+{% else %}
+<div class="empty-tip">这个标签下还没有诗词。</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,300 @@
+/* 拾遗集 —— 仿古诗文网风格：宣纸底、楷体标题、朱砂红点缀 */
+
+:root {
+  --paper: #f7f4ec;          /* 宣纸底色 */
+  --card: #fffdf8;
+  --ink: #3d3a34;            /* 墨色文字 */
+  --ink-light: #8a8478;
+  --vermilion: #9d2933;      /* 朱砂红 */
+  --vermilion-dark: #7c1f27;
+  --border: #e3ddcd;
+  --gold: #b08d57;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "Songti SC", "STSong", SimSun, "Noto Serif SC", serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.8;
+}
+
+a { color: var(--vermilion); text-decoration: none; }
+a:hover { color: var(--vermilion-dark); }
+
+/* ---------- 头部 ---------- */
+.site-header {
+  background: var(--card);
+  border-bottom: 2px solid var(--vermilion);
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.header-inner {
+  max-width: 1080px; margin: 0 auto; padding: 0 16px;
+  display: flex; align-items: center; gap: 28px; height: 64px;
+}
+.logo { display: flex; align-items: baseline; gap: 8px; }
+.logo-seal {
+  display: inline-block; width: 34px; height: 34px; line-height: 34px;
+  text-align: center; align-self: center;
+  background: var(--vermilion); color: #fff;
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 20px; border-radius: 4px;
+}
+.logo-text {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 26px; font-weight: bold; color: var(--vermilion); letter-spacing: 2px;
+}
+.logo-sub { font-size: 12px; color: var(--ink-light); }
+.main-nav { display: flex; gap: 4px; }
+.main-nav a {
+  padding: 6px 14px; color: var(--ink); font-size: 15px; border-radius: 4px;
+}
+.main-nav a:hover { background: #f2ece0; color: var(--vermilion); }
+.main-nav a.active { color: var(--vermilion); font-weight: bold; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.search-form { display: flex; }
+.search-form input {
+  width: 190px; padding: 6px 10px; border: 1px solid var(--border);
+  border-right: none; border-radius: 4px 0 0 4px; font-size: 13px;
+  background: #fff; outline: none;
+}
+.search-form input:focus { border-color: var(--gold); }
+.search-form button {
+  padding: 6px 14px; border: none; background: var(--vermilion); color: #fff;
+  border-radius: 0 4px 4px 0; cursor: pointer; font-size: 13px;
+}
+.search-form button:hover { background: var(--vermilion-dark); }
+.user-badge { color: var(--gold); font-weight: bold; }
+.link-plain { color: var(--ink-light); font-size: 14px; }
+.btn-register {
+  padding: 5px 14px; background: var(--vermilion); color: #fff !important;
+  border-radius: 4px; font-size: 14px;
+}
+
+/* ---------- 提示条 ---------- */
+.flash-area { max-width: 1080px; margin: 12px auto 0; padding: 0 16px; }
+.flash {
+  padding: 9px 16px; border-radius: 4px; font-size: 14px; margin-bottom: 6px;
+  border: 1px solid;
+}
+.flash-success { background: #f0f7ee; border-color: #bcd9b3; color: #3c6e2f; }
+.flash-warning { background: #fdf3e7; border-color: #ecc89a; color: #9c6512; }
+
+/* ---------- 布局 ---------- */
+.page { max-width: 1080px; margin: 20px auto 40px; padding: 0 16px; }
+.layout { display: flex; gap: 24px; align-items: flex-start; }
+.main-col { flex: 1; min-width: 0; }
+.side-col { width: 280px; flex-shrink: 0; }
+@media (max-width: 860px) {
+  .layout { flex-direction: column; }
+  .side-col { width: 100%; }
+  .header-inner { height: auto; flex-wrap: wrap; padding: 10px 16px; }
+  .logo-sub { display: none; }
+}
+
+/* ---------- 首页 ---------- */
+.hero-card {
+  background: linear-gradient(135deg, #fffdf8, #f6efe2);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 22px 26px; margin-bottom: 18px;
+  border-left: 4px solid var(--vermilion);
+}
+.hero-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 26px; color: var(--vermilion-dark); letter-spacing: 1px;
+}
+.hero-sub { color: var(--ink-light); font-size: 14px; margin-top: 6px; }
+
+.filter-bar {
+  display: flex; gap: 14px; align-items: center; font-size: 14px;
+  color: var(--ink-light); margin-bottom: 12px;
+}
+.filter-clear { font-size: 13px; text-decoration: underline; }
+
+.poem-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 18px 22px; margin-bottom: 14px;
+  transition: box-shadow .15s;
+}
+.poem-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.poem-card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.poem-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 21px; color: var(--ink); font-weight: bold;
+}
+.poem-title:hover { color: var(--vermilion); }
+.fav-mark { color: var(--vermilion); }
+.poem-meta { color: var(--ink-light); font-size: 13px; }
+.poem-excerpt {
+  margin-top: 8px; color: #5c574d; font-size: 15px; white-space: pre-line;
+}
+.poem-card-foot { margin-top: 10px; }
+.link-more { font-size: 13px; }
+.pager {
+  display: flex; gap: 16px; justify-content: center; margin: 24px 0;
+  font-size: 14px; align-items: center;
+}
+.pager a {
+  padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--card); color: var(--ink);
+}
+.pager a:hover { color: var(--vermilion); border-color: var(--vermilion); }
+.pager-info { color: var(--ink-light); }
+
+/* ---------- 详情页 ---------- */
+.poem-detail {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 34px 40px;
+}
+.detail-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  text-align: center; font-size: 34px; color: var(--ink);
+  letter-spacing: 3px; margin-bottom: 8px;
+}
+.detail-author { text-align: center; color: var(--ink-light); font-size: 15px; }
+.detail-author-name { color: var(--vermilion); }
+.poem-content { margin: 26px auto 30px; max-width: 560px; }
+.poem-line {
+  text-align: center; font-size: 18px; line-height: 2.3;
+  font-family: "KaiTi", "STKaiti", "楷体", serif; letter-spacing: 1px;
+}
+.poem-gap { line-height: .6; }
+.zhaiyao {
+  border-top: 1px dashed var(--border); padding-top: 18px; margin-top: 18px;
+}
+.zhaiyao-head {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 18px; color: var(--vermilion); margin-bottom: 8px;
+}
+.zhaiyao-head::before { content: "◆ "; font-size: 12px; }
+.zhaiyao-body { font-size: 15px; color: #5c574d; white-space: pre-line; }
+.detail-back { margin-top: 26px; border-top: 1px dashed var(--border); padding-top: 14px; }
+
+/* ---------- 侧栏 ---------- */
+.side-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 18px 20px; margin-bottom: 16px;
+}
+.side-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 17px; color: var(--vermilion); margin-bottom: 12px;
+  border-bottom: 1px solid var(--border); padding-bottom: 8px;
+}
+.side-text { font-size: 13px; color: var(--ink-light); margin-bottom: 12px; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  display: inline-block; padding: 3px 12px; font-size: 13px;
+  background: #f4efe3; border: 1px solid var(--border);
+  border-radius: 999px; color: var(--ink);
+}
+.tag:hover { border-color: var(--vermilion); color: var(--vermilion); }
+.tag-active { background: var(--vermilion); border-color: var(--vermilion); color: #fff; }
+.quick-links { list-style: none; }
+.quick-links li { margin-bottom: 8px; }
+
+/* ---------- 个人面板 / 表单 ---------- */
+.fav-form { margin-bottom: 14px; }
+.btn-fav {
+  width: 100%; padding: 9px; border: 1px solid var(--vermilion);
+  background: #fff; color: var(--vermilion); border-radius: 4px;
+  font-size: 15px; cursor: pointer;
+}
+.btn-fav:hover { background: #fdf0f1; }
+.btn-fav-on { background: var(--vermilion); color: #fff; }
+.note-form input, .note-form textarea,
+.auth-card input, .poem-form-card input, .poem-form-card textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: 4px; font-size: 14px; font-family: inherit;
+  background: #fff; margin-bottom: 12px; outline: none;
+}
+.note-form textarea, .poem-form-card textarea { resize: vertical; }
+input:focus, textarea:focus { border-color: var(--gold); }
+.form-label {
+  display: block; font-size: 13px; color: var(--ink-light); margin-bottom: 4px;
+}
+.btn-primary {
+  display: inline-block; padding: 8px 22px; background: var(--vermilion);
+  color: #fff !important; border: none; border-radius: 4px;
+  font-size: 15px; cursor: pointer; font-family: inherit;
+}
+.btn-primary:hover { background: var(--vermilion-dark); }
+.btn-block { width: 100%; }
+.btn-ghost {
+  display: inline-block; padding: 7px 20px; border: 1px solid var(--border);
+  border-radius: 4px; color: var(--ink) !important; font-size: 14px;
+  background: #fff; margin-bottom: 12px;
+}
+.note-tags { margin-top: 12px; }
+.note-body {
+  margin-top: 10px; padding: 10px 14px; background: #f7f2e6;
+  border-left: 3px solid var(--gold); font-size: 14px; color: #5c574d;
+  white-space: pre-line; border-radius: 0 4px 4px 0;
+}
+
+/* ---------- 页面标题 / 空状态 ---------- */
+.page-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 26px; color: var(--ink); margin-bottom: 18px;
+}
+.empty-tip {
+  text-align: center; color: var(--ink-light); padding: 50px 0;
+  background: var(--card); border: 1px dashed var(--border); border-radius: 6px;
+}
+
+/* ---------- 认证页 ---------- */
+.auth-box { display: flex; justify-content: center; padding: 30px 0; }
+.auth-card {
+  width: 360px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 30px 32px;
+}
+.auth-title {
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  font-size: 24px; text-align: center; margin-bottom: 20px; color: var(--vermilion);
+}
+.auth-alt { text-align: center; font-size: 13px; color: var(--ink-light); margin-top: 14px; }
+
+/* ---------- 管理后台 ---------- */
+.admin-section {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 20px 24px; margin-bottom: 20px;
+}
+.admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.admin-section h2 {
+  font-family: "KaiTi", "STKaiti", "楷体", serif; font-size: 20px; margin-bottom: 8px;
+}
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th, .admin-table td {
+  padding: 8px 10px; border-bottom: 1px solid #efe9da; text-align: left;
+}
+.admin-table th { color: var(--ink-light); font-weight: normal; font-size: 13px; }
+.admin-table .ops { display: flex; gap: 10px; align-items: center; }
+.inline-form { display: inline; }
+.btn-link {
+  border: none; background: none; color: var(--vermilion); cursor: pointer;
+  font-size: 13px; font-family: inherit; padding: 0;
+}
+.btn-link:hover { text-decoration: underline; }
+.btn-danger-link {
+  border: none; background: none; color: #a33; cursor: pointer;
+  font-size: 13px; font-family: inherit; padding: 0;
+}
+.btn-danger-link:hover { text-decoration: underline; }
+.badge-admin {
+  padding: 2px 8px; background: var(--vermilion); color: #fff;
+  border-radius: 3px; font-size: 12px;
+}
+
+/* ---------- 诗词编辑表单 ---------- */
+.poem-form-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 24px 28px; max-width: 720px;
+}
+.form-actions { display: flex; gap: 12px; margin-top: 6px; }
+
+/* ---------- 页脚 ---------- */
+.site-footer {
+  border-top: 1px solid var(--border); margin-top: 30px;
+  padding: 20px 0 30px; text-align: center;
+  color: var(--ink-light); font-size: 13px;
+}

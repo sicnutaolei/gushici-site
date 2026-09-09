@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}学习笔记 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">✎ 学习笔记</h1>
+{% for r in records %}
+<article class="poem-card note-card">
+  <div class="poem-card-head">
+    <a class="poem-title" href="{{ url_for('poem_detail', poem_id=r.poem_id) }}">{{ r.poem.title }}</a>
+    <span class="poem-meta">{{ r.poem.author }} · {{ r.poem.dynasty }}</span>
+  </div>
+  {% if r.tag_list() %}
+  <div class="tag-cloud note-tags">
+    {% for t in r.tag_list() %}<a class="tag" href="{{ url_for('tag_view', name=t) }}">{{ t }}</a>{% endfor %}
+  </div>
+  {% endif %}
+  {% if r.note %}<div class="note-body">{{ r.note }}</div>{% endif %}
+</article>
+{% else %}
+<div class="empty-tip">还没有写过笔记。打开任意一首诗词，就可以写笔记、加标签。</div>
+{% endfor %}
+{% endblock %}

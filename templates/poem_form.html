@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ '新增' if is_new else '编辑' }}诗词 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ '新增诗词' if is_new else '编辑诗词' }}</h1>
+<div class="poem-form-card">
+  <form method="post">
+    <label class="form-label">标题 *</label>
+    <input type="text" name="title" value="{{ form.title }}" required>
+    <label class="form-label">作者 *</label>
+    <input type="text" name="author" value="{{ form.author }}" required>
+    <label class="form-label">朝代 *</label>
+    <input type="text" name="dynasty" value="{{ form.dynasty }}" placeholder="如：唐 / 宋 / 元" required>
+    <label class="form-label">原文 *（每句一行，空一行分段）</label>
+    <textarea name="content" rows="10" required>{{ form.content }}</textarea>
+    <label class="form-label">译文</label>
+    <textarea name="translation" rows="5">{{ form.translation }}</textarea>
+    <label class="form-label">注释</label>
+    <textarea name="annotation" rows="5">{{ form.annotation }}</textarea>
+    <label class="form-label">赏析</label>
+    <textarea name="appreciation" rows="5">{{ form.appreciation }}</textarea>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">{{ '添加' if is_new else '保存' }}</button>
+      <a class="btn-ghost" href="{{ url_for('admin') }}">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}拾遗集 · 我的古诗词{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="{{ url_for('index') }}">
+      <span class="logo-seal">诗</span>
+      <span class="logo-text">拾遗集</span>
+      <span class="logo-sub">学过的 · 喜欢的诗词</span>
+    </a>
+    <nav class="main-nav">
+      <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">首页</a>
+      {% if cur_user %}
+      <a href="{{ url_for('favorites') }}" class="{{ 'active' if request.endpoint == 'favorites' }}">我的喜欢</a>
+      <a href="{{ url_for('notes') }}" class="{{ 'active' if request.endpoint in ('notes', 'tag_view') }}">学习笔记</a>
+      {% endif %}
+      {% if cur_user and cur_user.is_admin %}
+      <a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint == 'admin' }}">管理</a>
+      {% endif %}
+    </nav>
+    <div class="header-right">
+      <form class="search-form" action="{{ url_for('index') }}" method="get">
+        <input type="text" name="q" placeholder="搜索标题 / 作者 / 诗句…" value="{{ q if q is defined and q else '' }}">
+        <button type="submit">搜索</button>
+      </form>
+      {% if cur_user %}
+      <span class="user-badge">{{ cur_user.username }}</span>
+      <a class="link-plain" href="{{ url_for('logout') }}">退出</a>
+      {% else %}
+      <a class="link-plain" href="{{ url_for('login') }}">登录</a>
+      <a class="btn-register" href="{{ url_for('register') }}">注册</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-area">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<main class="page">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <p>拾遗集 · 记录我学过的和喜欢的古诗词</p>
+</footer>
+</body>
+</html>

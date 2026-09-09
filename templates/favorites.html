@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}我的喜欢 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">♥ 我的喜欢</h1>
+{% for r in records %}
+<article class="poem-card">
+  <div class="poem-card-head">
+    <a class="poem-title" href="{{ url_for('poem_detail', poem_id=r.poem_id) }}">{{ r.poem.title }}</a>
+    <span class="fav-mark">♥</span>
+    <span class="poem-meta">{{ r.poem.author }} · {{ r.poem.dynasty }}</span>
+  </div>
+  <div class="poem-excerpt">{{ r.poem.content.split('\n')[0] }}</div>
+</article>
+{% else %}
+<div class="empty-tip">还没有收藏任何诗词，去<a href="{{ url_for('index') }}">首页</a>逛逛吧。</div>
+{% endfor %}
+{% endblock %}

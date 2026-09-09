@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}管理后台 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">管理后台</h1>
+
+<div class="admin-section">
+  <div class="admin-head">
+    <h2>诗词管理（{{ poems|length }} 首）</h2>
+    <a class="btn-primary" href="{{ url_for('poem_new') }}">+ 新增诗词</a>
+  </div>
+  <table class="admin-table">
+    <tr><th>ID</th><th>标题</th><th>作者</th><th>朝代</th><th>操作</th></tr>
+    {% for p in poems %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td><a href="{{ url_for('poem_detail', poem_id=p.id) }}">{{ p.title }}</a></td>
+      <td>{{ p.author }}</td>
+      <td>{{ p.dynasty }}</td>
+      <td class="ops">
+        <a href="{{ url_for('poem_edit', poem_id=p.id) }}">编辑</a>
+        <form method="post" action="{{ url_for('poem_delete', poem_id=p.id) }}" class="inline-form"
+              onsubmit="return confirm('确定删除《{{ p.title }}》吗？该操作不可恢复。');">
+          <button type="submit" class="btn-danger-link">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="admin-section">
+  <h2>用户管理（{{ users|length }} 人）</h2>
+  <table class="admin-table">
+    <tr><th>ID</th><th>用户名</th><th>身份</th><th>注册时间</th><th>操作</th></tr>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{% if u.is_admin %}<span class="badge-admin">管理员</span>{% else %}普通用户{% endif %}</td>
+      <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+      <td class="ops">
+        <form method="post" action="{{ url_for('user_toggle_admin', user_id=u.id) }}" class="inline-form">
+          <button type="submit" class="btn-link">{{ '撤权' if u.is_admin else '设为管理员' }}</button>
+        </form>
+        <form method="post" action="{{ url_for('user_delete', user_id=u.id) }}" class="inline-form"
+              onsubmit="return confirm('确定删除用户 {{ u.username }} 吗？');">
+          <button type="submit" class="btn-danger-link">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
