@@ -20,6 +20,7 @@
       {% if cur_user %}
       <a href="{{ url_for('favorites') }}" class="{{ 'active' if request.endpoint == 'favorites' }}">我的喜欢</a>
       <a href="{{ url_for('notes') }}" class="{{ 'active' if request.endpoint in ('notes', 'tag_view') }}">学习笔记</a>
+      <a href="{{ url_for('export_data') }}" class="{{ 'active' if request.endpoint == 'export_data' }}">导出</a>
       {% endif %}
       {% if cur_user and cur_user.is_admin %}
       <a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint == 'admin' }}">管理</a>

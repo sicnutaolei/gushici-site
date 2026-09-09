@@ -88,7 +88,15 @@ c.get("/logout")
 c.post("/login", data={"username": "tester", "password": "xyz98765"})
 check("普通用户访问后台403", c.get("/admin"), 403)
 
-# 10. 404 页面
+# 10. 上一篇/下一篇导航
+r = c.get("/poem/2")
+check("详情页含下一篇导航", r, 200, "下一篇")
+check("详情页上一篇导航", c.get("/poem/2"), 200, "上一篇")
+
+# 11. 个人数据导出（登录 tester，之前收藏过静夜思并写了笔记）
+check("导出JSON", c.get("/export"), 200, "静夜思")
+
+# 12. 404 页面
 check("不存在的诗词404", c.get("/poem/99999"), 404)
 
 print()

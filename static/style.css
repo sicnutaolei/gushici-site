@@ -171,6 +171,23 @@ a:hover { color: var(--vermilion-dark); }
 .zhaiyao-body { font-size: 15px; color: #5c574d; white-space: pre-line; }
 .detail-back { margin-top: 26px; border-top: 1px dashed var(--border); padding-top: 14px; }
 
+/* ---------- 上一篇/下一篇 ---------- */
+.poem-nav {
+  display: flex; justify-content: space-between; gap: 16px;
+  margin-top: 26px; border-top: 1px dashed var(--border); padding-top: 16px;
+}
+.poem-nav-link {
+  flex: 1; max-width: 46%; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 4px; background: #fbf8f1;
+}
+.poem-nav-link:hover { border-color: var(--vermilion); }
+.poem-nav-right { margin-left: auto; text-align: right; }
+.poem-nav-label { display: block; font-size: 12px; color: var(--ink-light); }
+.poem-nav-title {
+  display: block; font-size: 15px; color: var(--ink);
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+}
+
 /* ---------- 侧栏 ---------- */
 .side-card {
   background: var(--card); border: 1px solid var(--border);

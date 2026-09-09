@@ -35,6 +35,23 @@
       </div>
       {% endif %}
 
+      {% if prev_poem or next_poem %}
+      <div class="poem-nav">
+        {% if prev_poem %}
+        <a class="poem-nav-link" href="{{ url_for('poem_detail', poem_id=prev_poem.id) }}">
+          <span class="poem-nav-label">← 上一篇</span>
+          <span class="poem-nav-title">{{ prev_poem.title }}</span>
+        </a>
+        {% else %}<span></span>{% endif %}
+        {% if next_poem %}
+        <a class="poem-nav-link poem-nav-right" href="{{ url_for('poem_detail', poem_id=next_poem.id) }}">
+          <span class="poem-nav-label">下一篇 →</span>
+          <span class="poem-nav-title">{{ next_poem.title }}</span>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+
       <div class="detail-back">
         <a class="link-plain" href="{{ url_for('index') }}">← 返回首页</a>
       </div>

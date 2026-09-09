@@ -5,10 +5,11 @@
 """
 import json
 import os
+from datetime import datetime
 from functools import wraps
 
-from flask import (Flask, abort, flash, redirect, render_template, request,
-                   session, url_for)
+from flask import (Flask, Response, abort, flash, redirect, render_template,
+                   request, session, url_for)
 
 from models import Poem, User, UserPoem, db
 
@@ -100,11 +101,14 @@ def index():
 @app.route("/poem/<int:poem_id>")
 def poem_detail(poem_id):
     poem = db.get_or_404(Poem, poem_id)
+    prev_poem = Poem.query.filter(Poem.id < poem.id).order_by(Poem.id.desc()).first()
+    next_poem = Poem.query.filter(Poem.id > poem.id).order_by(Poem.id.asc()).first()
     record = None
     user = current_user()
     if user:
         record = UserPoem.query.filter_by(user_id=user.id, poem_id=poem.id).first()
-    return render_template("detail.html", poem=poem, record=record)
+    return render_template("detail.html", poem=poem, record=record,
+                           prev_poem=prev_poem, next_poem=next_poem)
 
 
 # ---------- 个人记录：收藏 / 标签 / 笔记 ----------
@@ -167,6 +171,34 @@ def tag_view(name):
                .order_by(UserPoem.updated_at.desc()).all())
     records = [r for r in records if name in r.tag_list()]
     return render_template("tag.html", tag=name, records=records)
+
+
+@app.route("/export")
+@login_required
+def export_data():
+    """导出当前用户的个人数据（收藏 / 标签 / 笔记）为 JSON 文件，用于备份或迁移"""
+    records = (UserPoem.query.filter_by(user_id=current_user().id)
+               .order_by(UserPoem.poem_id).all())
+    data = {
+        "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "username": current_user().username,
+        "records": [
+            {
+                "poem_id": r.poem_id,
+                "title": r.poem.title,
+                "author": r.poem.author,
+                "dynasty": r.poem.dynasty,
+                "is_favorite": r.is_favorite,
+                "tags": r.tag_list(),
+                "note": r.note,
+            }
+            for r in records if r.is_favorite or r.note or r.tags
+        ],
+    }
+    body = json.dumps(data, ensure_ascii=False, indent=2)
+    filename = f"gushici_export_{datetime.now().strftime('%Y%m%d')}.json"
+    return Response(body, mimetype="application/json",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 # ---------- 认证 ----------
