@@ -47,6 +47,8 @@
 
 ## Docker 部署（推荐）
 
+> 飞牛 NAS 上的**完整手把手教程**见 👉 [`DEPLOY.md`](DEPLOY.md)（含上传部署方式、备份恢复、排错表）
+
 ```bash
 # 构建并启动（首次启动自动建库、导入预置诗词、创建管理员）
 docker compose up -d --build

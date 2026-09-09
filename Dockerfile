@@ -13,6 +13,8 @@ COPY . .
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
+# 时区：影响「每日一诗」按天切换，默认东八区，可在 docker-compose 中覆盖
+ENV TZ=Asia/Shanghai
 ENV SECRET_KEY=please-change-this-secret-key
 EXPOSE 5000
 

@@ -6,7 +6,9 @@ services:
     ports:
       - "8080:5000"          # 左边是宿主机端口，按需修改
     environment:
-      # 生产环境务必改成随机长字符串
+      # 生产环境务必改成随机长字符串（可用 python -c "import secrets;print(secrets.token_hex(32))" 生成）
       - SECRET_KEY=please-change-this-secret-key
+      # 时区：影响「每日一诗」按天切换，务必设为你所在时区
+      - TZ=Asia/Shanghai
     volumes:
       - ./data:/app/data     # SQLite 数据库持久化到宿主机
