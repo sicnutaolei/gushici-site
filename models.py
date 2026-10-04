@@ -1,4 +1,5 @@
 """数据模型：用户 / 诗词 / 个人学习记录（收藏、标签、笔记）"""
+import secrets
 from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
@@ -13,10 +14,17 @@ class User(db.Model):
     username = db.Column(db.String(32), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    # 移动端 / API 鉴权令牌（Bearer Token）。网页端用 session，此字段可空。
+    api_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     records = db.relationship("UserPoem", backref="user", lazy="dynamic",
                               cascade="all, delete-orphan")
+
+    def refresh_token(self) -> str:
+        """生成新的 API 令牌（登录 / 改密时调用，旧令牌即失效）"""
+        self.api_token = secrets.token_hex(32)
+        return self.api_token
 
     def set_password(self, raw: str):
         from werkzeug.security import generate_password_hash

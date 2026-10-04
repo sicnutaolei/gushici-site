@@ -114,6 +114,96 @@ check("每日一诗落地页", c.get(r.headers.get("Location", "/"), follow_redi
 # 16. 404 页面
 check("不存在的诗词404", c.get("/poem/99999"), 404)
 
+# ---------- 17. JSON API（为 Flutter 等客户端准备）----------
+def check_json(name, resp, expect_status=200, expect_keys=None):
+    ok = resp.status_code == expect_status
+    if ok and expect_keys:
+        try:
+            body = resp.get_json()
+        except Exception:
+            body, ok = None, False
+        if body is not None:
+            for k in expect_keys:
+                if k not in body:
+                    ok = False
+    status = "PASS" if ok else "FAIL"
+    if not ok:
+        failures.append(name)
+    print(f"[{status}] {name} (status={resp.status_code})")
+
+def check_bool(name, cond):
+    ok = bool(cond)
+    status = "PASS" if ok else "FAIL"
+    if not ok:
+        failures.append(name)
+    print(f"[{status}] {name}")
+
+# 匿名客户端（无 session cookie），用于验证未授权访问
+anon = app.test_client()
+
+# 17.1 未带 token 访问受保护接口 -> 401
+check_json("API未授权访问401", anon.get("/api/v1/auth/me"), 401)
+check_json("API未授权收藏401", anon.post("/api/v1/poems/13/favorite"), 401)
+
+# 17.2 注册拿 token
+r = c.post("/api/v1/auth/register",
+           json={"username": "apitest", "password": "api12345", "password2": "api12345"})
+check_json("API注册返回token", r, 200, ["token", "user"])
+api_token = r.get_json().get("token") or ""
+check_bool("API token非空", type(api_token) is str and len(api_token) == 64)
+
+# 17.3 Bearer token 访问 /me
+check_json("API-me", c.get("/api/v1/auth/me", headers={"Authorization": "Bearer " + api_token}),
+           200, ["user"])
+# 17.4 Bearer token 错误 -> 401（用匿名客户端，排除 session 回退干扰）
+check_json("API错误token401", anon.get("/api/v1/auth/me", headers={"Authorization": "Bearer wrong"}), 401)
+
+# 17.5 诗词列表 / 详情 / 每日一诗 / 作者 / 朝代
+check_json("API诗词列表", c.get("/api/v1/poems"), 200, ["items", "total", "pages"])
+check_json("API列表含预置诗", c.get("/api/v1/poems?q=静夜思"), 200)
+check_json("API诗词详情", c.get("/api/v1/poems/13"), 200, ["poem", "prev", "next", "my_record"])
+check_json("API每日一诗", c.get("/api/v1/daily"), 200, ["id", "title"])
+check_json("API作者列表", c.get("/api/v1/authors"), 200)
+check_json("API朝代列表", c.get("/api/v1/dynasties"), 200)
+check_json("API作者诗词", c.get("/api/v1/authors/李白"), 200)
+
+# 17.6 收藏开关（带 token）
+check_json("API收藏置true", c.post("/api/v1/poems/13/favorite",
+           headers={"Authorization": "Bearer " + api_token}), 200, ["is_favorite"])
+check_json("API收藏列表", c.get("/api/v1/favorites", headers={"Authorization": "Bearer " + api_token}),
+           200)
+_fav_body = c.get("/api/v1/favorites", headers={"Authorization": "Bearer " + api_token}).get_json()
+check_bool("API收藏含静夜思", any(it["poem"]["title"] == "静夜思" for it in _fav_body))
+
+# 17.7 保存笔记/标签
+check_json("API保存笔记", c.put("/api/v1/poems/13/note",
+           json={"note": "API测试笔记", "tags": "必背,思乡"},
+           headers={"Authorization": "Bearer " + api_token}), 200, ["note", "tags"])
+_notes_body = c.get("/api/v1/notes", headers={"Authorization": "Bearer " + api_token}).get_json()
+check_bool("API笔记列表含笔记", any("API测试笔记" in it["note"] for it in _notes_body))
+check_json("API标签列表", c.get("/api/v1/tags", headers={"Authorization": "Bearer " + api_token}), 200)
+check_json("API标签筛选", c.get("/api/v1/tags/思乡", headers={"Authorization": "Bearer " + api_token}), 200)
+
+# 17.8 统计 / 导出
+check_json("API统计", c.get("/api/v1/stats", headers={"Authorization": "Bearer " + api_token}),
+           200, ["favorite", "note", "total_poems"])
+check_json("API导出", c.get("/api/v1/export", headers={"Authorization": "Bearer " + api_token}), 200)
+
+# 17.9 CORS 响应头（/api 路径）
+hdr = c.get("/api/v1/dynasties").headers.get("Access-Control-Allow-Origin")
+check_bool("API CORS头", hdr == "*")
+
+# 17.10 改密码使旧 token 失效
+r = c.post("/api/v1/auth/change-password",
+           json={"old_password": "api12345", "new_password": "api98765", "new_password2": "api98765"},
+           headers={"Authorization": "Bearer " + api_token})
+check_json("API改密返回新token", r, 200, ["token"])
+new_token = r.get_json().get("token")
+check_bool("API旧token失效", anon.get("/api/v1/auth/me",
+      headers={"Authorization": "Bearer " + api_token}).status_code == 401)
+check_bool("API新token可用", c.get("/api/v1/auth/me",
+      headers={"Authorization": "Bearer " + new_token}).status_code == 200)
+
 print()
 print("=" * 40)
 if failures:

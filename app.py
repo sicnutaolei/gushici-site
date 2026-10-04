@@ -10,6 +10,7 @@ from functools import wraps
 
 from flask import (Flask, Response, abort, flash, redirect, render_template,
                    request, session, url_for)
+from sqlalchemy import inspect, text
 
 from models import Poem, User, UserPoem, db
 
@@ -24,8 +25,31 @@ db_path = os.environ.get("POEMS_DB_PATH", os.path.join(DATA_DIR, "poems.db"))
 os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# API 返回中文原文时输出可读 UTF-8（不转义为 \uXXXX），同时减小 payload
+app.json.ensure_ascii = False
 
 db.init_app(app)
+
+# 注册 JSON API（/api/v1）——为 Flutter 等客户端提供后端接口，不破坏网页端
+from api import api_bp
+app.register_blueprint(api_bp)
+
+
+# ---------- CORS（仅对 /api 放开，供 Flutter web / 跨域调用）----------
+@app.after_request
+def _add_cors(resp):
+    if request.path.startswith("/api"):
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return resp
+
+
+@app.route("/api/v1", defaults={"_": ""}, methods=["OPTIONS"])
+@app.route("/api/v1/<path:_>", methods=["OPTIONS"])
+def _api_preflight(_):
+    return ("", 204)
+
 
 PER_PAGE = 10
 
@@ -487,6 +511,15 @@ def init_db(reset=False):
         if reset:
             db.drop_all()
         db.create_all()
+        # 老库可能没有 api_token 列（v1 之后新增），做一次向后兼容的 ALTER
+        try:
+            cols = [c["name"] for c in inspect(db.engine).get_columns("users")]
+        except Exception:
+            cols = []
+        if "api_token" not in cols:
+            with db.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN api_token VARCHAR(64)"))
+            print("[init] 已为 users 表追加 api_token 列")
         if not User.query.filter_by(username="admin").first():
             admin = User(username="admin", is_admin=True)
             admin.set_password("admin123")

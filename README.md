@@ -6,6 +6,7 @@
 ## 功能
 
 - **诗词库**：内置 70 首经典诗词（原文 / 译文 / 注释 / 赏析），预置先秦至清代名篇
+- **App 后端 API**：`/api/v1` 提供完整 JSON 接口（Bearer Token 鉴权 + CORS），可直接用 Flutter 等构建手机/桌面 app 👉 [`API.md`](API.md)
 - **注册登录**：支持多用户，每人有独立的收藏和笔记
 - **我的喜欢**：一键收藏，单独页面查看
 - **标签 + 学习笔记**：给诗词打自定义标签（如"必背""已背会""思乡"），写个人学习心得
@@ -97,6 +98,7 @@ python app.py    # 访问 http://127.0.0.1:5000
 ```
 gushici-site/
 ├── app.py              # Flask 主应用（路由、认证、管理）
+├── api.py              # /api/v1 JSON 接口（Flutter 等客户端后端）
 ├── models.py           # 数据模型：User / Poem / UserPoem
 ├── seed_data.py        # 预置诗词汇总（seed_data1/2.py）
 ├── templates/          # 页面模板
