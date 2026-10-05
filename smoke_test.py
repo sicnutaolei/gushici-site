@@ -166,6 +166,8 @@ check_json("API每日一诗", c.get("/api/v1/daily"), 200, ["id", "title"])
 check_json("API作者列表", c.get("/api/v1/authors"), 200)
 check_json("API朝代列表", c.get("/api/v1/dynasties"), 200)
 check_json("API作者诗词", c.get("/api/v1/authors/李白"), 200)
+check_json("API作者生平", c.get("/api/v1/authors/李白/info"), 200,
+           ["name", "dynasty", "zihao", "birth_year", "death_year", "bio", "has_profile"])
 
 # 17.6 收藏开关（带 token）
 check_json("API收藏置true", c.post("/api/v1/poems/13/favorite",

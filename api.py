@@ -12,7 +12,7 @@ from functools import wraps
 
 from flask import Blueprint, jsonify, request, session
 
-from models import Poem, ReciteLog, User, UserPoem, db
+from models import Author, Poem, ReciteLog, User, UserPoem, db
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
@@ -213,6 +213,33 @@ def api_authors():
 def api_author_poems(name):
     poems = Poem.query.filter(Poem.author == name).order_by(Poem.id).all()
     return jsonify([_poem_json(p) for p in poems])
+
+
+@api_bp.route("/authors/<name>/info")
+def api_author_info(name):
+    """作者生平（字号/生卒/简介）。无档案时用诗词聚合出的作者/朝代兜底，bio 为空。"""
+    author = Author.query.filter_by(name=name).first()
+    dynasty = (db.session.query(Poem.dynasty)
+               .filter(Poem.author == name).first() or [None])[0]
+    if author:
+        return jsonify({
+            "name": author.name,
+            "dynasty": author.dynasty or dynasty or "",
+            "zihao": author.zihao or "",
+            "birth_year": author.birth_year or "",
+            "death_year": author.death_year or "",
+            "bio": author.bio or "",
+            "has_profile": bool(author.bio or author.zihao or author.birth_year),
+        })
+    return jsonify({
+        "name": name,
+        "dynasty": dynasty or "",
+        "zihao": "",
+        "birth_year": "",
+        "death_year": "",
+        "bio": "",
+        "has_profile": False,
+    })
 
 
 @api_bp.route("/dynasties")
