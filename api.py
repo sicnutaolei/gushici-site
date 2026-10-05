@@ -6,6 +6,7 @@
 - 与网页端共享同一套数据模型，网页功能不受影响。
 - 不引入 flask-cors，CORS 由 app.py 的 after_request 手写响应头处理。
 """
+import os
 import secrets
 from datetime import datetime
 from functools import wraps
@@ -246,6 +247,103 @@ def api_author_info(name):
 def api_dynasties():
     ds = [d[0] for d in db.session.query(Poem.dynasty).distinct().order_by(Poem.dynasty)]
     return jsonify(ds)
+
+
+# ---------- AI 生成（限管理员：调用会消耗 AI 额度，避免被任意用户触发） ----------
+
+def api_admin_required(view):
+    """必须登录且是管理员"""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        u = get_token_user()
+        if not u:
+            return jsonify(error="未登录或 token 无效", code="unauthorized"), 401
+        if not u.is_admin:
+            return jsonify(error="仅管理员可使用 AI 生成", code="forbidden"), 403
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def _ai_cfg():
+    """AI 配置：环境变量优先，其次网页「AI 设置」（SiteSetting）。
+    返回 (key, base, model, max_tokens)"""
+    import ai_helper
+    from models import SiteSetting
+    key = os.environ.get("AI_API_KEY") or SiteSetting.get("AI_API_KEY", "")
+    base = os.environ.get("AI_BASE_URL") or SiteSetting.get("AI_BASE_URL", "")
+    model = os.environ.get("AI_MODEL") or SiteSetting.get("AI_MODEL", "")
+    mt = os.environ.get("AI_MAX_TOKENS") or SiteSetting.get("AI_MAX_TOKENS", "")
+    return ai_helper.resolve_config(api_key=key, base_url=base, model=model, max_tokens=mt)
+
+
+@api_bp.route("/ai/author-bio", methods=["POST"])
+@api_admin_required
+def api_ai_author_bio():
+    """AI 生成作者生平（只生成、不落库），返回 zihao/生卒/bio 供客户端确认后再保存"""
+    import ai_helper
+    key, base, model, max_tokens = _ai_cfg()
+    if not key:
+        return jsonify(error="未配置 AI_API_KEY（请在网站管理页「AI 设置」填写，或设置环境变量）",
+                       code="no_key"), 503
+    j = request.get_json(silent=True) or {}
+    name = (j.get("name") or "").strip()
+    dynasty = (j.get("dynasty") or "").strip()
+    if not name:
+        return jsonify(error="缺少作者名", code="bad_request"), 400
+    try:
+        data = ai_helper.generate_author_bio(name, dynasty, api_key=key, base_url=base,
+                                             model=model, max_tokens=max_tokens)
+        return jsonify(ok=True, **data)
+    except RuntimeError as e:
+        return jsonify(error=str(e), code="ai_error"), 502
+
+
+@api_bp.route("/ai/poem-background/<int:poem_id>", methods=["POST"])
+@api_admin_required
+def api_ai_poem_background(poem_id):
+    """AI 生成创作背景（只生成、不落库），返回 background 供客户端确认后再保存"""
+    import ai_helper
+    key, base, model, max_tokens = _ai_cfg()
+    if not key:
+        return jsonify(error="未配置 AI_API_KEY（请在网站管理页「AI 设置」填写，或设置环境变量）",
+                       code="no_key"), 503
+    poem = db.get_or_404(Poem, poem_id)
+    try:
+        data = ai_helper.generate_poem_background(
+            poem.title, poem.author, poem.dynasty, poem.content,
+            api_key=key, base_url=base, model=model, max_tokens=max_tokens)
+        return jsonify(ok=True, **data)
+    except RuntimeError as e:
+        return jsonify(error=str(e), code="ai_error"), 502
+
+
+@api_bp.route("/authors/<name>/bio", methods=["PUT"])
+@api_admin_required
+def api_save_author_bio(name):
+    """保存作者生平（Author 不存在则创建）；只更新传入的字段"""
+    j = request.get_json(silent=True) or {}
+    author = Author.query.filter_by(name=name).first()
+    if not author:
+        author = Author(name=name)
+        db.session.add(author)
+    for field in ("zihao", "birth_year", "death_year", "bio", "dynasty"):
+        if field in j:
+            setattr(author, field, (j.get(field) or "").strip())
+    db.session.commit()
+    return jsonify(ok=True, name=author.name, dynasty=author.dynasty or "",
+                   zihao=author.zihao or "", birth_year=author.birth_year or "",
+                   death_year=author.death_year or "", bio=author.bio or "")
+
+
+@api_bp.route("/poems/<int:poem_id>/background", methods=["PUT"])
+@api_admin_required
+def api_save_poem_background(poem_id):
+    """保存创作背景"""
+    poem = db.get_or_404(Poem, poem_id)
+    j = request.get_json(silent=True) or {}
+    poem.background = (j.get("background") or "").strip()
+    db.session.commit()
+    return jsonify(ok=True, id=poem.id, background=poem.background or "")
 
 
 # ---------- 个人记录：收藏 / 标签 / 笔记 ----------

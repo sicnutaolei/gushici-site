@@ -206,6 +206,34 @@ check_bool("API旧token失效", anon.get("/api/v1/auth/me",
 check_bool("API新token可用", c.get("/api/v1/auth/me",
       headers={"Authorization": "Bearer " + new_token}).status_code == 200)
 
+# 17.11 AI 端点鉴权 + 保存端点（只验证鉴权/保存，不真实调用 AI，避免消耗额度）
+check_json("AI生平未登录401",
+           anon.post("/api/v1/ai/author-bio", json={"name": "李白"}), 401)
+check_json("AI生平非管理员403",
+           anon.post("/api/v1/ai/author-bio", json={"name": "李白"},
+                     headers={"Authorization": "Bearer " + new_token}), 403)
+r = anon.post("/api/v1/auth/login", json={"username": "admin", "password": "admin123"})
+check_json("管理员API登录", r, 200, ["token", "user"])
+admin_token = r.get_json().get("token") or ""
+check_bool("管理员token非空", len(admin_token) == 64)
+check_bool("管理员is_admin为真", (r.get_json().get("user") or {}).get("is_admin") is True)
+# 测试库未配置 AI key -> 503（不会真正请求 AI 接口）
+r = anon.post("/api/v1/ai/author-bio", json={"name": "李白"},
+              headers={"Authorization": "Bearer " + admin_token})
+check_bool("AI生平无key503", r.status_code == 503)
+# 保存端点（管理员）：作者生平 + 创作背景
+r = anon.put("/api/v1/authors/冒烟测试作者/bio",
+             json={"zihao": "字测试", "bio": "冒烟测试简介", "dynasty": "唐"},
+             headers={"Authorization": "Bearer " + admin_token})
+check_json("API保存作者生平", r, 200, ["name", "bio"])
+check_bool("API作者生平已落库", (r.get_json().get("bio") or "") == "冒烟测试简介")
+_plist = anon.get("/api/v1/poems", headers={"Authorization": "Bearer " + admin_token}).get_json()
+_pid = (_plist.get("items") or [{}])[0].get("id") or 1
+r = anon.put(f"/api/v1/poems/{_pid}/background", json={"background": "冒烟测试背景"},
+             headers={"Authorization": "Bearer " + admin_token})
+check_json("API保存创作背景", r, 200, ["background"])
+check_bool("API创作背景已落库", (r.get_json().get("background") or "") == "冒烟测试背景")
+
 print()
 print("=" * 40)
 if failures:
