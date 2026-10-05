@@ -40,7 +40,7 @@
     btn.disabled = true;
     status.className = 'ai-status';
     status.textContent = 'AI 生成中，约需十几秒…';
-    fetch('{{ url_for("poem_ai_background", poem_id=poem.id) }}', {
+    fetch('{{ url_for("poem_ai_background", poem_id=poem_id) }}', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       credentials: 'same-origin', body: '{}'
     }).then(function (r) { return r.json(); }).then(function (d) {

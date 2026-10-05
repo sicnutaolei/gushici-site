@@ -3,6 +3,10 @@
 {% block content %}
 <h1 class="page-title">管理后台</h1>
 
+<div class="admin-section admin-tools">
+  <a class="btn-ghost" href="{{ url_for('admin_settings') }}">⚙ AI 设置</a>
+</div>
+
 <div class="admin-section">
   <div class="admin-head">
     <h2>诗词管理（{{ poems|length }} 首）</h2>

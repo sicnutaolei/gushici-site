@@ -102,3 +102,28 @@ class ReciteLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)  # 本地时间（容器 TZ=Asia/Shanghai）
 
     poem = db.relationship("Poem")
+
+
+class SiteSetting(db.Model):
+    """站点级键值配置（如 AI_API_KEY），由管理员在网页设置页填写，存数据库。
+    环境变量优先级更高（环境变量有值则覆盖此处）。
+    """
+
+    __tablename__ = "site_settings"
+
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text, default="")
+
+    @staticmethod
+    def get(key, default=""):
+        row = SiteSetting.query.get(key)
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = SiteSetting.query.get(key)
+        if row is None:
+            row = SiteSetting(key=key)
+            db.session.add(row)
+        row.value = value or ""
+        db.session.commit()

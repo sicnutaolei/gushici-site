@@ -78,7 +78,7 @@
     input.setAttribute('aria-label', '第' + (idx + 1) + '句输入');
     div.appendChild(input);
 
-    var st = { target: target, typed: [], boxes: [], input: input, lineEl: div };
+    var st = { target: target, typed: [], boxes: [], input: input, lineEl: div, composing: false };
     var boxEls = div.querySelectorAll('.recite-box');
     for (var j = 0; j < boxEls.length; j++) st.boxes.push(boxEls[j]);
 
@@ -86,15 +86,15 @@
       setActive(st);
       renderBoxes(st);
     });
-    input.addEventListener('input', function () {
-      if (done) { input.value = st.typed.join(''); return; }
-      var v = input.value.replace(/\s/g, '');
-      if (v.length > st.target.length) v = v.slice(0, st.target.length);
-      st.typed = v.split('');
-      input.value = v;
-      renderBoxes(st);
-      if (st.typed.length === st.target.length) focusNext(st);
-      else statusEl.textContent = '';
+    // IME（拼音）组合中不要处理，否则拼音会直接落进格子；等汉字提交再落格
+    input.addEventListener('compositionstart', function () { st.composing = true; });
+    input.addEventListener('compositionend', function () {
+      st.composing = false;
+      processInput(st);
+    });
+    input.addEventListener('input', function (e) {
+      if (st.composing || (e && e.isComposing)) return;
+      processInput(st);
     });
     return st;
   }
@@ -114,6 +114,17 @@
       if (i === st.typed.length) b.classList.add('focused');
       else b.classList.remove('focused');
     }
+  }
+
+  function processInput(st) {
+    if (done) { st.input.value = st.typed.join(''); return; }
+    var v = st.input.value.replace(/\s/g, '');
+    if (v.length > st.target.length) v = v.slice(0, st.target.length);
+    st.typed = v.split('');
+    st.input.value = v;
+    renderBoxes(st);
+    if (st.typed.length === st.target.length) focusNext(st);
+    else statusEl.textContent = '';
   }
 
   function focusNext(st) {

@@ -13,7 +13,7 @@ from flask import (Flask, Response, abort, flash, jsonify, redirect,
                    render_template, request, session, url_for)
 from sqlalchemy import inspect, text
 
-from models import Author, Poem, ReciteLog, User, UserPoem, db
+from models import Author, Poem, ReciteLog, SiteSetting, User, UserPoem, db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -483,16 +483,44 @@ def author_edit(name):
 
 # ---------- AI 生成（DeepSeek，OpenAI 兼容接口）----------
 
+def _ai_config():
+    """从站点设置（网页填写）读取 AI 配置，环境变量优先级更高。返回 (key, base, model)。"""
+    import ai_helper
+    key = os.environ.get("AI_API_KEY") or SiteSetting.get("AI_API_KEY", "")
+    base = os.environ.get("AI_BASE_URL") or SiteSetting.get("AI_BASE_URL", "")
+    model = os.environ.get("AI_MODEL") or SiteSetting.get("AI_MODEL", "")
+    return ai_helper.resolve_config(api_key=key, base_url=base, model=model)
+
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@admin_required
+def admin_settings():
+    """AI 配置（密钥/接口地址/模型），管理员在网页填写，存数据库。
+    环境变量若已设置则覆盖此处。"""
+    if request.method == "POST":
+        for k in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL"):
+            v = (request.form.get(k, "") or "").strip()
+            if v:  # 留空表示不修改已保存的值
+                SiteSetting.set(k, v)
+        flash("AI 设置已保存", "success")
+        return redirect(url_for("admin_settings"))
+    vals = {k: SiteSetting.get(k, "") for k in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL")}
+    env_src = {k: bool(os.environ.get(k)) for k in ("AI_API_KEY", "AI_BASE_URL", "AI_MODEL")}
+    return render_template("settings.html", vals=vals, env_src=env_src)
+
+
 @app.post("/admin/author/<name>/ai-bio")
 @admin_required
 def author_ai_bio(name):
     """AI 生成作者生平，返回 JSON 供表单预填（管理员确认后才保存）"""
     import ai_helper
-    if not ai_helper.ai_available():
-        return jsonify(ok=False, error="未配置 AI_API_KEY 环境变量，无法使用 AI 生成"), 503
-    dynasty = request.get_json(silent=True).get("dynasty", "") if request.get_json(silent=True) else ""
+    key, base, model = _ai_config()
+    if not key:
+        return jsonify(ok=False, error="未配置 AI_API_KEY（可在网站管理页「AI 设置」填写，或设置 AI_API_KEY 环境变量）"), 503
+    j = request.get_json(silent=True) or {}
+    dynasty = j.get("dynasty", "")
     try:
-        data = ai_helper.generate_author_bio(name, dynasty)
+        data = ai_helper.generate_author_bio(name, dynasty, api_key=key, base_url=base, model=model)
         return jsonify(ok=True, **data)
     except RuntimeError as e:
         return jsonify(ok=False, error=str(e)), 502
@@ -503,12 +531,14 @@ def author_ai_bio(name):
 def poem_ai_background(poem_id):
     """AI 生成某首诗的创作背景，返回 JSON 供表单预填（管理员确认后才保存）"""
     import ai_helper
-    if not ai_helper.ai_available():
-        return jsonify(ok=False, error="未配置 AI_API_KEY 环境变量，无法使用 AI 生成"), 503
+    key, base, model = _ai_config()
+    if not key:
+        return jsonify(ok=False, error="未配置 AI_API_KEY（可在网站管理页「AI 设置」填写，或设置 AI_API_KEY 环境变量）"), 503
     poem = db.get_or_404(Poem, poem_id)
     try:
         data = ai_helper.generate_poem_background(
-            poem.title, poem.author, poem.dynasty, poem.content)
+            poem.title, poem.author, poem.dynasty, poem.content,
+            api_key=key, base_url=base, model=model)
         return jsonify(ok=True, **data)
     except RuntimeError as e:
         return jsonify(ok=False, error=str(e)), 502
@@ -517,10 +547,11 @@ def poem_ai_background(poem_id):
 @app.cli.command("ai-fill-bios")
 @click.option("--only-empty", is_flag=True, default=True, help="只给没有简介的作者生成")
 def ai_fill_bios(only_empty):
-    """批量 AI 生成作者生平（需设置 AI_API_KEY 环境变量）"""
+    """批量 AI 生成作者生平（环境变量或网页「AI 设置」均可）"""
     import ai_helper
-    if not ai_helper.ai_available():
-        raise SystemExit("请先设置 AI_API_KEY 环境变量")
+    key, base, model = _ai_config()
+    if not key:
+        raise SystemExit("请先配置 AI_API_KEY（网页「AI 设置」或环境变量）")
     names = [r[0] for r in db.session.query(Poem.author).distinct().order_by(Poem.author)]
     done = skip = fail = 0
     for name in names:
@@ -529,7 +560,7 @@ def ai_fill_bios(only_empty):
             skip += 1
             continue
         try:
-            data = ai_helper.generate_author_bio(name)
+            data = ai_helper.generate_author_bio(name, api_key=key, base_url=base, model=model)
         except RuntimeError as e:
             print(f"[失败] {name}: {e}")
             fail += 1
@@ -549,10 +580,11 @@ def ai_fill_bios(only_empty):
 @app.cli.command("ai-fill-backgrounds")
 @click.option("--only-empty", is_flag=True, default=True, help="只给没有创作背景的诗生成")
 def ai_fill_backgrounds(only_empty):
-    """批量 AI 生成诗词创作背景（需设置 AI_API_KEY 环境变量）"""
+    """批量 AI 生成诗词创作背景（环境变量或网页「AI 设置」均可）"""
     import ai_helper
-    if not ai_helper.ai_available():
-        raise SystemExit("请先设置 AI_API_KEY 环境变量")
+    key, base, model = _ai_config()
+    if not key:
+        raise SystemExit("请先配置 AI_API_KEY（网页「AI 设置」或环境变量）")
     poems = Poem.query.order_by(Poem.id).all()
     done = skip = fail = 0
     for p in poems:
@@ -560,7 +592,9 @@ def ai_fill_backgrounds(only_empty):
             skip += 1
             continue
         try:
-            data = ai_helper.generate_poem_background(p.title, p.author, p.dynasty, p.content)
+            data = ai_helper.generate_poem_background(
+                p.title, p.author, p.dynasty, p.content,
+                api_key=key, base_url=base, model=model)
         except RuntimeError as e:
             print(f"[失败] 《{p.title}》: {e}")
             fail += 1

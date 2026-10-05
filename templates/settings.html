@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}AI 设置 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">AI 设置</h1>
+<p class="recite-hint">
+  填写后，作者生平与诗词创作背景的「🤖 AI 生成」按钮即可使用。配置保存在数据库；
+  若同时设置了同名环境变量，环境变量优先级更高。
+</p>
+<div class="poem-form-card">
+  <form method="post">
+    <label class="form-label">AI_API_KEY（必填）</label>
+    <input type="password" name="AI_API_KEY" value="{{ vals.AI_API_KEY }}"
+           placeholder="sk-...（留空则不修改已保存的值）" autocomplete="off">
+    {% if env_src.AI_API_KEY %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
+
+    <label class="form-label">AI_BASE_URL（选填，默认 https://api.deepseek.com）</label>
+    <input type="text" name="AI_BASE_URL" value="{{ vals.AI_BASE_URL }}"
+           placeholder="https://api.deepseek.com">
+    {% if env_src.AI_BASE_URL %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
+
+    <label class="form-label">AI_MODEL（选填，默认 deepseek-chat）</label>
+    <input type="text" name="AI_MODEL" value="{{ vals.AI_MODEL }}"
+           placeholder="deepseek-chat">
+    {% if env_src.AI_MODEL %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">保存</button>
+      <a class="btn-ghost" href="{{ url_for('admin') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
