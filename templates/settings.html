@@ -23,6 +23,13 @@
            placeholder="deepseek-flash">
     {% if env_src.AI_MODEL %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
 
+    <label class="form-label">AI_MAX_TOKENS（选填，默认 8192）</label>
+    <input type="number" name="AI_MAX_TOKENS" value="{{ vals.AI_MAX_TOKENS }}"
+           placeholder="8192" min="1024" step="1024">
+    <span class="ai-status">推理类模型（如 deepseek-flash、dots3-note-*）思考会消耗额度；
+    被截断时系统会自动放大到 16384 重试。仍报错可调大此值。</span>
+    {% if env_src.AI_MAX_TOKENS %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
+
     <div class="form-actions">
       <button type="submit" class="btn-primary">保存</button>
       <a class="btn-ghost" href="{{ url_for('admin') }}">返回</a>
