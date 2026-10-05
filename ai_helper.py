@@ -3,7 +3,7 @@
 配置全部走环境变量（不进代码库）：
 - AI_API_KEY   必填，DeepSeek 平台申请
 - AI_BASE_URL  选填，默认 https://api.deepseek.com
-- AI_MODEL     选填，默认 deepseek-chat
+- AI_MODEL     选填，默认 deepseek-flash
 
 只用 Python 标准库（urllib），不给项目增加任何依赖。
 未配置 key 时 ai_available() 返回 False，调用方给用户友好提示即可。
@@ -22,7 +22,7 @@ def resolve_config(api_key: str = None, base_url: str = None, model: str = None)
     key = (api_key or os.environ.get("AI_API_KEY") or "").strip()
     base = (base_url or os.environ.get("AI_BASE_URL") or "https://api.deepseek.com").strip().rstrip("/") \
         or "https://api.deepseek.com"
-    mdl = (model or os.environ.get("AI_MODEL") or "deepseek-chat").strip() or "deepseek-chat"
+    mdl = (model or os.environ.get("AI_MODEL") or "deepseek-flash").strip() or "deepseek-flash"
     return key, base, mdl
 
 
@@ -43,7 +43,7 @@ def ai_chat_json(system: str, user: str, api_key: str = None, base_url: str = No
             {"role": "user", "content": user},
         ],
         "temperature": 0.6,
-        "max_tokens": 1000,
+        "max_tokens": 4096,
         "response_format": {"type": "json_object"},
     }).encode("utf-8")
 
@@ -70,16 +70,48 @@ def ai_chat_json(system: str, user: str, api_key: str = None, base_url: str = No
         raise RuntimeError(f"无法连接 AI 接口：{e.reason}") from None
 
     try:
-        content = data["choices"][0]["message"]["content"]
-        return json.loads(content)
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
-        raise RuntimeError(f"AI 返回内容无法解析为 JSON：{e}") from None
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
+    except (KeyError, IndexError, TypeError) as e:
+        raise RuntimeError(f"AI 返回结构异常：{e}（响应片段：{str(data)[:300]}）") from None
+
+    # 推理类模型（如 deepseek-flash）会把额度花在 reasoning_content 上，
+    # 一旦 max_tokens 被耗尽，正式回答会被截断甚至为空。这里给出明确提示而非天书报错。
+    if choice.get("finish_reason") == "length" and not (content or "").strip():
+        raise RuntimeError(
+            "AI 响应被截断：思考过程耗尽了 max_tokens 额度，导致回答为空。"
+            "请增大 max_tokens（当前 4096）或简化请求。") from None
+
+    try:
+        return _extract_json(content)
+    except (ValueError, json.JSONDecodeError) as e:
+        snippet = (content or "").strip()[:200]
+        tail = (f"；模型结束原因={choice.get('finish_reason')}" if choice.get("finish_reason") == "length" else "")
+        raise RuntimeError(f"AI 返回内容无法解析为 JSON：{e}（原始内容：{snippet!r}）{tail}") from None
+
+
+def _extract_json(content: str) -> dict:
+    """从模型回复里取出 JSON 对象。兼容模型把 JSON 用 ```json ... ``` 代码块包裹的情况。"""
+    s = (content or "").strip()
+    if not s:
+        raise ValueError("响应内容为空")
+    # 去掉可能的 markdown 代码块包裹（```json ... ``` 或 ``` ... ```）
+    if s.startswith("```"):
+        # 去掉首行（可能含语言标识如 json）与结尾的 ```
+        s = s.split("\n", 1)[1] if "\n" in s else s[3:]
+        if s.endswith("```"):
+            s = s[:-3]
+        s = s.strip()
+        if not s:
+            raise ValueError("响应内容为空（仅含代码块标记）")
+    return json.loads(s)
 
 
 # ---------- 面向业务的两个封装 ----------
 
-BIO_SYSTEM = ("你是严谨的古典文学学者。只输出 JSON，不要输出任何其他文字。"
-              "生卒年用通行说法，拿不准就加「约」前缀；不得编造史实。")
+BIO_SYSTEM = ("你是严谨的古典文学学者。只输出 JSON 对象本身，不要输出任何其他文字，"
+              "也不要用 ``` 代码块或反引号包裹。生卒年用通行说法，拿不准就加「约」前缀；"
+              "不得编造史实。")
 
 
 def generate_author_bio(name: str, dynasty: str = "", api_key: str = None,
@@ -97,8 +129,8 @@ def generate_author_bio(name: str, dynasty: str = "", api_key: str = None,
             ("zihao", "birth_year", "death_year", "bio")}
 
 
-BG_SYSTEM = ("你是严谨的古典文学学者。只输出 JSON，不要输出任何其他文字。"
-             "以学界通行说法为准，不得编造具体史实与轶事。")
+BG_SYSTEM = ("你是严谨的古典文学学者。只输出 JSON 对象本身，不要输出任何其他文字，"
+             "也不要用 ``` 代码块或反引号包裹。以学界通行说法为准，不得编造具体史实与轶事。")
 
 
 def generate_poem_background(title: str, author: str, dynasty: str, content: str,

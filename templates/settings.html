@@ -18,9 +18,9 @@
            placeholder="https://api.deepseek.com">
     {% if env_src.AI_BASE_URL %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
 
-    <label class="form-label">AI_MODEL（选填，默认 deepseek-chat）</label>
+    <label class="form-label">AI_MODEL（选填，默认 deepseek-flash）</label>
     <input type="text" name="AI_MODEL" value="{{ vals.AI_MODEL }}"
-           placeholder="deepseek-chat">
+           placeholder="deepseek-flash">
     {% if env_src.AI_MODEL %}<span class="ai-status">当前由环境变量提供</span>{% endif %}
 
     <div class="form-actions">
