@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}编辑作者简介 - 拾遗集{% endblock %}
+{% block content %}
+<h1 class="page-title">作者简介：{{ name }}</h1>
+<div class="poem-form-card">
+  <form method="post">
+    <label class="form-label">朝代</label>
+    <input type="text" name="dynasty" value="{{ form.dynasty }}" placeholder="如：唐 / 宋 / 元">
+    <label class="form-label">字号</label>
+    <input type="text" name="zihao" value="{{ form.zihao }}" placeholder="如：字太白，号青莲居士">
+    <label class="form-label">生年</label>
+    <input type="text" name="birth_year" value="{{ form.birth_year }}" placeholder="如：701 / 约701">
+    <label class="form-label">卒年</label>
+    <input type="text" name="death_year" value="{{ form.death_year }}" placeholder="如：762 / 约762">
+    <label class="form-label">生平简介</label>
+    <textarea name="bio" rows="8" placeholder="概述性生平介绍，支持多句…">{{ form.bio }}</textarea>
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">保存</button>
+      <a class="btn-ghost" href="{{ url_for('author_view', name=name) }}">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

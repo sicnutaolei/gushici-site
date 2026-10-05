@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, flash, redirect, render_template,
                    request, session, url_for)
 from sqlalchemy import inspect, text
 
-from models import Poem, User, UserPoem, db
+from models import Author, Poem, User, UserPoem, db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -211,6 +211,7 @@ def daily():
 
 @app.route("/author/<name>")
 def author_view(name):
+    author_obj = Author.query.filter_by(name=name).first()
     poems = Poem.query.filter(Poem.author == name).order_by(Poem.id).all()
     user = current_user()
     fav_ids = set()
@@ -218,8 +219,8 @@ def author_view(name):
         rows = UserPoem.query.filter_by(user_id=user.id, is_favorite=True).all()
         fav_ids = {r.poem_id for r in rows}
     dynasties = sorted({p.dynasty for p in poems})
-    return render_template("author.html", name=name, poems=poems,
-                           fav_ids=fav_ids, dynasties=dynasties)
+    return render_template("author.html", name=name, author_obj=author_obj,
+                           poems=poems, fav_ids=fav_ids, dynasties=dynasties)
 
 
 @app.route("/stats")
@@ -411,6 +412,25 @@ def poem_delete(poem_id):
     return redirect(url_for("admin"))
 
 
+@app.route("/admin/author/<name>/edit", methods=["GET", "POST"])
+@admin_required
+def author_edit(name):
+    """补充 / 编辑某作者的生平简介（作者档案可选，缺省显示「暂无简介」）。"""
+    author_obj = Author.query.filter_by(name=name).first()
+    fields = ("dynasty", "zihao", "birth_year", "death_year", "bio")
+    if request.method == "POST":
+        if not author_obj:
+            author_obj = Author(name=name)
+            db.session.add(author_obj)
+        for k in fields:
+            setattr(author_obj, k, (request.form.get(k, "") or "").strip())
+        db.session.commit()
+        flash("作者信息已保存", "success")
+        return redirect(url_for("author_view", name=name))
+    form = {k: getattr(author_obj, k) or "" for k in fields} if author_obj else {k: "" for k in fields}
+    return render_template("author_form.html", name=name, form=form)
+
+
 REQUIRED_FIELDS = ("title", "author", "dynasty", "content")
 
 
@@ -531,6 +551,11 @@ def init_db(reset=False):
             db.session.bulk_insert_mappings(Poem, ALL_POEMS)
             db.session.commit()
             print(f"[init] 已导入预置诗词 {len(ALL_POEMS)} 首")
+        if Author.query.count() == 0:
+            from seed_authors import ALL_AUTHORS
+            db.session.bulk_insert_mappings(Author, ALL_AUTHORS)
+            db.session.commit()
+            print(f"[init] 已导入作者简介 {len(ALL_AUTHORS)} 位")
 
 
 init_db()

@@ -6,7 +6,7 @@
     <article class="poem-detail">
       <h1 class="detail-title">{{ poem.title }}</h1>
       <p class="detail-author">
-        {{ poem.dynasty }} · <span class="detail-author-name">{{ poem.author }}</span>
+        {{ poem.dynasty }} · <a class="detail-author-name" href="{{ url_for('author_view', name=poem.author) }}">{{ poem.author }}</a>
         {% if record and record.is_favorite %}<span class="fav-mark">♥ 我喜欢的</span>{% endif %}
       </p>
 

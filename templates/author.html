@@ -5,6 +5,24 @@
   {% for d in dynasties %}<span class="author-dynasty">{{ d }}</span>{% endfor %}
   <span class="page-title-sub">共 {{ poems|length }} 首</span>
 </h1>
+
+<section class="author-bio">
+  {% if author_obj and (author_obj.dynasty or author_obj.zihao or author_obj.birth_year or author_obj.death_year) %}
+  <p class="author-bio-meta">
+    {% if author_obj.dynasty %}<span>{{ author_obj.dynasty }}</span>{% endif %}
+    {% if author_obj.zihao %}<span>{{ author_obj.zihao }}</span>{% endif %}
+    {% if author_obj.birth_year or author_obj.death_year %}<span>{{ author_obj.birth_year or '?' }}–{{ author_obj.death_year or '?' }}</span>{% endif %}
+  </p>
+  {% endif %}
+  {% if author_obj and author_obj.bio %}
+  <div class="author-bio-text">{{ author_obj.bio }}</div>
+  {% else %}
+  <div class="author-bio-text author-bio-empty">该作者暂无简介，{% if cur_user and cur_user.is_admin %}可在后台补充。{% else %}敬请期待。{% endif %}</div>
+  {% endif %}
+  {% if cur_user and cur_user.is_admin %}
+  <a class="btn-ghost btn-sm" href="{{ url_for('author_edit', name=name) }}">编辑生平</a>
+  {% endif %}
+</section>
 {% for poem in poems %}
 <article class="poem-card">
   <div class="poem-card-head">

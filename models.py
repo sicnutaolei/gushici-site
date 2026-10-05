@@ -66,3 +66,21 @@ class UserPoem(db.Model):
 
     def tag_list(self):
         return [t.strip() for t in (self.tags or "").split(",") if t.strip()]
+
+
+class Author(db.Model):
+    """作者信息表：生平简介、字号、生卒年。
+
+    与 Poem 解耦——Poem.author 仍是自由字符串，Author 仅作为可选的「生平档案」。
+    某作者没有档案时，作者页正常显示诗词列表，仅提示「暂无简介」。
+    """
+
+    __tablename__ = "authors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    dynasty = db.Column(db.String(32), default="")        # 朝代，如「唐」
+    zihao = db.Column(db.String(128), default="")         # 字号，如「字太白，号青莲居士」
+    birth_year = db.Column(db.String(16), default="")     # 生年（字符串容错，如 701 / 约701）
+    death_year = db.Column(db.String(16), default="")     # 卒年
+    bio = db.Column(db.Text, default="")                  # 生平简介（概述性文字）

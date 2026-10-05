@@ -6,6 +6,28 @@
 <title>{% block title %}拾遗集 · 我的古诗词{% endblock %}</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script>
+/* 防主题闪烁：CSS 加载前同步设定 data-theme 与自定义变量 */
+(function () {
+  try {
+    var root = document.documentElement;
+    var t = localStorage.getItem('gushi-theme') || 'light';
+    if (t === 'system') t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    root.setAttribute('data-theme', t);
+    var mix = function (a, b, r) {
+      var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+      var ar = pa >> 16, ag = (pa >> 8) & 255, ab = pa & 255;
+      var br = pb >> 16, bg = (pb >> 8) & 255, bb = pb & 255;
+      var rr = Math.round(ar + (br - ar) * r), rg = Math.round(ag + (bg - ag) * r), rb = Math.round(ab + (bb - ab) * r);
+      return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1);
+    };
+    var ac = localStorage.getItem('gushi-accent');
+    if (ac) { root.style.setProperty('--vermilion', ac); root.style.setProperty('--vermilion-dark', mix(ac, '#000000', 0.18)); }
+    var bgc = localStorage.getItem('gushi-bg');
+    if (bgc) { root.style.setProperty('--paper', bgc); root.style.setProperty('--card', mix(bgc, '#ffffff', 0.12)); }
+  } catch (e) {}
+})();
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -27,6 +49,23 @@
       {% endif %}
     </nav>
     <div class="header-right">
+      <div class="theme-wrap">
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="外观设置" title="外观设置">🎨</button>
+        <div class="theme-panel" id="themePanel" hidden>
+          <div class="theme-panel-title">主题</div>
+          <div class="theme-opts" id="themeOpts">
+            <label><input type="radio" name="gtheme" value="light"> 宣纸浅色</label>
+            <label><input type="radio" name="gtheme" value="dark"> 墨夜深色</label>
+            <label><input type="radio" name="gtheme" value="green"> 青绿</label>
+            <label><input type="radio" name="gtheme" value="system"> 跟随系统</label>
+          </div>
+          <div class="theme-custom">
+            <label>主色 <input type="color" id="accentPicker" value="#9d2933"></label>
+            <label>背景 <input type="color" id="bgPicker" value="#f7f4ec"></label>
+            <button type="button" class="btn-ghost btn-sm" id="themeReset">重置自定义</button>
+          </div>
+        </div>
+      </div>
       <form class="search-form" action="{{ url_for('index') }}" method="get">
         <input type="text" name="q" placeholder="搜索标题 / 作者 / 诗句…" value="{{ q if q is defined and q else '' }}">
         <button type="submit">搜索</button>
@@ -60,5 +99,6 @@
 <footer class="site-footer">
   <p>拾遗集 · 记录我学过的和喜欢的古诗词</p>
 </footer>
+<script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>
