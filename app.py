@@ -8,11 +8,12 @@ import os
 from datetime import datetime
 from functools import wraps
 
-from flask import (Flask, Response, abort, flash, redirect, render_template,
-                   request, session, url_for)
+import click
+from flask import (Flask, Response, abort, flash, jsonify, redirect,
+                   render_template, request, session, url_for)
 from sqlalchemy import inspect, text
 
-from models import Author, Poem, User, UserPoem, db
+from models import Author, Poem, ReciteLog, User, UserPoem, db
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -254,7 +255,55 @@ def stats():
     return render_template("stats.html", fav_count=fav_count, note_count=note_count,
                            tagged_count=tagged_count, tags_sorted=tags_sorted,
                            dynasty_sorted=dynasty_sorted, max_tag=max_tag,
-                           max_dyn=max_dyn, total=total, touched=touched)
+                           max_dyn=max_dyn, total=total, touched=touched,
+                           **_recite_summary(uid))
+
+
+# ---------- 背诵打卡 ----------
+
+def _recite_summary(uid):
+    """背诵打卡汇总：今日是否打卡、连续天数、累计次数、覆盖首数、最近记录"""
+    logs = (ReciteLog.query.filter_by(user_id=uid)
+            .order_by(ReciteLog.created_at.desc()).all())
+    today = datetime.now().date()
+    days = sorted({r.created_at.date() for r in logs}, reverse=True)
+    streak = 0
+    # 从今天（或昨天）起往回数连续天数
+    if days and (days[0] == today or (today - days[0]).days == 1):
+        streak = 1
+        for prev, cur in zip(days, days[1:]):
+            if (prev - cur).days == 1:
+                streak += 1
+            else:
+                break
+    recent = logs[:8]
+    return {
+        "recite_today": today in set(days),
+        "recite_streak": streak,
+        "recite_total": len(logs),
+        "recite_poems": len({r.poem_id for r in logs}),
+        "recite_recent": recent,
+    }
+
+
+@app.route("/recite/<int:poem_id>")
+@login_required
+def recite(poem_id):
+    """背诵模式：只给标题/作者/朝代与标点，正文逐字填写，全对自动记打卡"""
+    poem = db.get_or_404(Poem, poem_id)
+    return render_template("recite.html", poem=poem)
+
+
+@app.post("/recite/<int:poem_id>/checkin")
+@login_required
+def recite_checkin(poem_id):
+    """背诵全对后的打卡接口（由 recite 页前端自动调用）"""
+    poem = db.get_or_404(Poem, poem_id)
+    db.session.add(ReciteLog(user_id=current_user().id, poem_id=poem.id))
+    db.session.commit()
+    s = _recite_summary(current_user().id)
+    return jsonify(ok=True, today=s["recite_today"], streak=s["recite_streak"],
+                   total=s["recite_total"], poems=s["recite_poems"])
 
 
 @app.route("/export")
@@ -371,7 +420,7 @@ def admin():
 @admin_required
 def poem_new():
     form = {k: "" for k in ("title", "author", "dynasty", "content",
-                            "translation", "annotation", "appreciation")}
+                            "translation", "annotation", "appreciation", "background")}
     if request.method == "POST":
         for k in form:
             form[k] = request.form.get(k, "").strip()
@@ -391,7 +440,8 @@ def poem_new():
 def poem_edit(poem_id):
     poem = db.get_or_404(Poem, poem_id)
     form = {k: getattr(poem, k) or "" for k in ("title", "author", "dynasty", "content",
-                                                "translation", "annotation", "appreciation")}
+                                                "translation", "annotation", "appreciation",
+                                                "background")}
     if request.method == "POST":
         for k in form:
             setattr(poem, k, request.form.get(k, "").strip())
@@ -429,6 +479,98 @@ def author_edit(name):
         return redirect(url_for("author_view", name=name))
     form = {k: getattr(author_obj, k) or "" for k in fields} if author_obj else {k: "" for k in fields}
     return render_template("author_form.html", name=name, form=form)
+
+
+# ---------- AI 生成（DeepSeek，OpenAI 兼容接口）----------
+
+@app.post("/admin/author/<name>/ai-bio")
+@admin_required
+def author_ai_bio(name):
+    """AI 生成作者生平，返回 JSON 供表单预填（管理员确认后才保存）"""
+    import ai_helper
+    if not ai_helper.ai_available():
+        return jsonify(ok=False, error="未配置 AI_API_KEY 环境变量，无法使用 AI 生成"), 503
+    dynasty = request.get_json(silent=True).get("dynasty", "") if request.get_json(silent=True) else ""
+    try:
+        data = ai_helper.generate_author_bio(name, dynasty)
+        return jsonify(ok=True, **data)
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e)), 502
+
+
+@app.post("/admin/poem/<int:poem_id>/ai-background")
+@admin_required
+def poem_ai_background(poem_id):
+    """AI 生成某首诗的创作背景，返回 JSON 供表单预填（管理员确认后才保存）"""
+    import ai_helper
+    if not ai_helper.ai_available():
+        return jsonify(ok=False, error="未配置 AI_API_KEY 环境变量，无法使用 AI 生成"), 503
+    poem = db.get_or_404(Poem, poem_id)
+    try:
+        data = ai_helper.generate_poem_background(
+            poem.title, poem.author, poem.dynasty, poem.content)
+        return jsonify(ok=True, **data)
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e)), 502
+
+
+@app.cli.command("ai-fill-bios")
+@click.option("--only-empty", is_flag=True, default=True, help="只给没有简介的作者生成")
+def ai_fill_bios(only_empty):
+    """批量 AI 生成作者生平（需设置 AI_API_KEY 环境变量）"""
+    import ai_helper
+    if not ai_helper.ai_available():
+        raise SystemExit("请先设置 AI_API_KEY 环境变量")
+    names = [r[0] for r in db.session.query(Poem.author).distinct().order_by(Poem.author)]
+    done = skip = fail = 0
+    for name in names:
+        author_obj = Author.query.filter_by(name=name).first()
+        if only_empty and author_obj and (author_obj.bio or "").strip():
+            skip += 1
+            continue
+        try:
+            data = ai_helper.generate_author_bio(name)
+        except RuntimeError as e:
+            print(f"[失败] {name}: {e}")
+            fail += 1
+            continue
+        if not author_obj:
+            author_obj = Author(name=name)
+            db.session.add(author_obj)
+        for k in ("zihao", "birth_year", "death_year", "bio"):
+            if data.get(k):
+                setattr(author_obj, k, data[k])
+        db.session.commit()
+        done += 1
+        print(f"[完成] {name}")
+    print(f"汇总：生成 {done}，跳过 {skip}，失败 {fail}")
+
+
+@app.cli.command("ai-fill-backgrounds")
+@click.option("--only-empty", is_flag=True, default=True, help="只给没有创作背景的诗生成")
+def ai_fill_backgrounds(only_empty):
+    """批量 AI 生成诗词创作背景（需设置 AI_API_KEY 环境变量）"""
+    import ai_helper
+    if not ai_helper.ai_available():
+        raise SystemExit("请先设置 AI_API_KEY 环境变量")
+    poems = Poem.query.order_by(Poem.id).all()
+    done = skip = fail = 0
+    for p in poems:
+        if only_empty and (p.background or "").strip():
+            skip += 1
+            continue
+        try:
+            data = ai_helper.generate_poem_background(p.title, p.author, p.dynasty, p.content)
+        except RuntimeError as e:
+            print(f"[失败] 《{p.title}》: {e}")
+            fail += 1
+            continue
+        if data.get("background"):
+            p.background = data["background"]
+            db.session.commit()
+            done += 1
+            print(f"[完成] 《{p.title}》")
+    print(f"汇总：生成 {done}，跳过 {skip}，失败 {fail}")
 
 
 REQUIRED_FIELDS = ("title", "author", "dynasty", "content")
@@ -531,15 +673,21 @@ def init_db(reset=False):
         if reset:
             db.drop_all()
         db.create_all()
-        # 老库可能没有 api_token 列（v1 之后新增），做一次向后兼容的 ALTER
-        try:
-            cols = [c["name"] for c in inspect(db.engine).get_columns("users")]
-        except Exception:
-            cols = []
-        if "api_token" not in cols:
-            with db.engine.begin() as conn:
-                conn.execute(text("ALTER TABLE users ADD COLUMN api_token VARCHAR(64)"))
-            print("[init] 已为 users 表追加 api_token 列")
+        # 老库向后兼容：create_all 只建新表不给旧表加列，这里统一自动补列（自愈迁移）
+        wanted_columns = {
+            "users": {"api_token": "VARCHAR(64)"},
+            "poems": {"background": "TEXT"},
+        }
+        for table, cols_to_add in wanted_columns.items():
+            try:
+                cols = [c["name"] for c in inspect(db.engine).get_columns(table)]
+            except Exception:
+                continue
+            for col, coltype in cols_to_add.items():
+                if col not in cols:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {coltype}"))
+                    print(f"[init] 已为 {table} 表追加 {col} 列")
         if not User.query.filter_by(username="admin").first():
             admin = User(username="admin", is_admin=True)
             admin.set_password("admin123")

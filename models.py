@@ -46,6 +46,7 @@ class Poem(db.Model):
     translation = db.Column(db.Text, default="")           # 译文
     annotation = db.Column(db.Text, default="")            # 注释
     appreciation = db.Column(db.Text, default="")          # 赏析
+    background = db.Column(db.Text, default="")            # 创作背景：写作时作者人生阶段/经历
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -84,3 +85,20 @@ class Author(db.Model):
     birth_year = db.Column(db.String(16), default="")     # 生年（字符串容错，如 701 / 约701）
     death_year = db.Column(db.String(16), default="")     # 卒年
     bio = db.Column(db.Text, default="")                  # 生平简介（概述性文字）
+
+
+class ReciteLog(db.Model):
+    """背诵打卡记录：每次全对通过背诵记一条。
+
+    「今日打卡」= 今天有至少一条记录；「连续天数」按本地日期计算。
+    同一首诗一天可多次通过（都记录，便于看练习次数）。
+    """
+
+    __tablename__ = "recite_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    poem_id = db.Column(db.Integer, db.ForeignKey("poems.id"), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True)  # 本地时间（容器 TZ=Asia/Shanghai）
+
+    poem = db.relationship("Poem")

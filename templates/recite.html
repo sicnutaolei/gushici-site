@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}背诵 · {{ poem.title }} - 拾遗集{% endblock %}
+{% block content %}
+<div class="recite-wrap">
+  <h1 class="page-title">{{ poem.title }}</h1>
+  <p class="recite-meta">{{ poem.dynasty }} · {{ poem.author }}</p>
+  <p class="recite-hint">按顺序在方框中填入原文（标点已给出，直接连续输入即可）。全部填对将自动记录今日打卡。</p>
+
+  <div class="recite-toolbar">
+    <button type="button" class="btn-primary" id="btnCheck">检查</button>
+    <button type="button" class="btn-ghost" id="btnReset">重来</button>
+    <button type="button" class="btn-ghost" id="btnReveal">看原文</button>
+    <span id="reciteStatus" class="recite-status"></span>
+  </div>
+
+  <div id="reciteBoard" class="recite-board"></div>
+
+  <div id="revealBox" class="poem-content recite-reveal" hidden>
+    {% for line in poem.content.split('\n') %}
+      {% if line.strip() %}<p class="poem-line">{{ line }}</p>{% endif %}
+    {% endfor %}
+  </div>
+
+  <div id="successBox" class="flash flash-success recite-success" hidden></div>
+
+  <div class="detail-back">
+    <a class="link-plain" href="{{ url_for('poem_detail', poem_id=poem.id) }}">← 返回《{{ poem.title }}》</a>
+  </div>
+</div>
+
+<script type="application/json" id="poemContent">{{ poem.content | tojson }}</script>
+<script>
+(function () {
+  'use strict';
+  var PUNCT = '，。？！；：、·—…“”‘’「」『』《》〈〉（）()！？';
+  var content = JSON.parse(document.getElementById('poemContent').textContent);
+  var board = document.getElementById('reciteBoard');
+  var statusEl = document.getElementById('reciteStatus');
+  var successBox = document.getElementById('successBox');
+  var revealBox = document.getElementById('revealBox');
+  var lines = content.split('\n');
+  var state = [];   // {target:[字], typed:[], boxes:[span], input, lineEl}
+  var done = false; // 已通过（锁定输入）
+  var cheated = false;
+
+  function isFillChar(ch) {
+    if (!ch || /\s/.test(ch)) return false;
+    return PUNCT.indexOf(ch) === -1;
+  }
+
+  function buildLine(text, idx) {
+    var target = [];
+    var div = document.createElement('div');
+    div.className = 'recite-line';
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (isFillChar(ch)) {
+        target.push(ch);
+        var b = document.createElement('span');
+        b.className = 'recite-box';
+        b.textContent = '\u00a0';
+        div.appendChild(b);
+      } else {
+        var p = document.createElement('span');
+        p.className = 'recite-punct';
+        p.textContent = ch === ' ' ? '\u00a0' : ch;
+        div.appendChild(p);
+      }
+    }
+    if (!target.length) { div.className = 'recite-gap'; return null; }
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.autocapitalize = 'off';
+    input.spellcheck = false;
+    input.className = 'recite-line-input';
+    input.setAttribute('aria-label', '第' + (idx + 1) + '句输入');
+    div.appendChild(input);
+
+    var st = { target: target, typed: [], boxes: [], input: input, lineEl: div };
+    var boxEls = div.querySelectorAll('.recite-box');
+    for (var j = 0; j < boxEls.length; j++) st.boxes.push(boxEls[j]);
+
+    input.addEventListener('focus', function () {
+      setActive(st);
+      renderBoxes(st);
+    });
+    input.addEventListener('input', function () {
+      if (done) { input.value = st.typed.join(''); return; }
+      var v = input.value.replace(/\s/g, '');
+      if (v.length > st.target.length) v = v.slice(0, st.target.length);
+      st.typed = v.split('');
+      input.value = v;
+      renderBoxes(st);
+      if (st.typed.length === st.target.length) focusNext(st);
+      else statusEl.textContent = '';
+    });
+    return st;
+  }
+
+  var activeSt = null;
+  function setActive(st) {
+    if (activeSt && activeSt.lineEl) activeSt.lineEl.classList.remove('active');
+    activeSt = st;
+    if (st && st.lineEl) st.lineEl.classList.add('active');
+  }
+
+  function renderBoxes(st) {
+    for (var i = 0; i < st.boxes.length; i++) {
+      var b = st.boxes[i];
+      b.textContent = st.typed[i] || '\u00a0';
+      b.classList.remove('ok', 'bad');
+      if (i === st.typed.length) b.classList.add('focused');
+      else b.classList.remove('focused');
+    }
+  }
+
+  function focusNext(st) {
+    var i = state.indexOf(st);
+    if (i >= 0 && i < state.length - 1) {
+      state[i + 1].input.focus();
+    } else if (i === state.length - 1) {
+      check(); // 最后一句填满自动判分
+    }
+  }
+
+  function check() {
+    if (done) return;
+    if (cheated) {
+      statusEl.textContent = '已看过原文，本次不记打卡（点「重来」再试）';
+      return;
+    }
+    var allOk = true;
+    state.forEach(function (st) {
+      for (var i = 0; i < st.boxes.length; i++) {
+        var ok = st.typed[i] === st.target[i];
+        st.boxes[i].classList.toggle('ok', ok);
+        st.boxes[i].classList.toggle('bad', !ok);
+        if (!ok) allOk = false;
+      }
+    });
+    if (allOk) { pass(); }
+    else { statusEl.textContent = '还有错的字（红框），改对后会自动通过'; }
+  }
+
+  function pass() {
+    done = true;
+    statusEl.textContent = '全部正确！';
+    state.forEach(function (st) { st.input.blur(); });
+    var csrf = '';
+    fetch('{{ url_for("recite_checkin", poem_id=poem.id) }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: '{}'
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      successBox.hidden = false;
+      successBox.textContent = d.ok
+        ? '🎉 背诵通过，已记录今日打卡！连续 ' + d.streak + ' 天 · 累计 ' + d.total + ' 次 · 覆盖 ' + d.poems + ' 首。'
+        : '背诵通过，但打卡记录失败，请稍后重试。';
+    }).catch(function () {
+      successBox.hidden = false;
+      successBox.textContent = '背诵通过，但网络异常打卡未记录。';
+    });
+  }
+
+  function reset() {
+    done = false; cheated = false;
+    revealBox.hidden = true;
+    successBox.hidden = true;
+    statusEl.textContent = '';
+    state.forEach(function (st) {
+      st.typed = [];
+      st.input.value = '';
+      renderBoxes(st);
+    });
+    if (state.length) state[0].input.focus();
+  }
+
+  // 渲染所有行
+  lines.forEach(function (text, idx) {
+    var st = buildLine(text, idx);
+    if (st) state.push(st);
+    board.appendChild(text.trim() && st ? st.lineEl :
+      (function () { var g = document.createElement('div'); g.className = 'recite-gap'; return g; })());
+  });
+
+  board.addEventListener('click', function (e) {
+    if (done) return;
+    var lineEl = e.target.closest('.recite-line');
+    if (lineEl) {
+      var st = state.filter(function (s) { return s.lineEl === lineEl; })[0];
+      if (st) st.input.focus();
+    }
+  });
+
+  document.getElementById('btnCheck').addEventListener('click', check);
+  document.getElementById('btnReset').addEventListener('click', reset);
+  document.getElementById('btnReveal').addEventListener('click', function () {
+    revealBox.hidden = !revealBox.hidden;
+    if (!revealBox.hidden && !done) {
+      cheated = true;
+      statusEl.textContent = '已看原文，本次不记打卡（点「重来」再试）';
+    }
+  });
+
+  if (state.length) state[0].input.focus();
+})();
+</script>
+{% endblock %}

@@ -460,3 +460,44 @@ code {
 [data-theme="green"] .hero-card, [data-theme="green"] .side-card-daily {
   background: linear-gradient(135deg, #f3f9f3, #e6efe6); border-color: #cfe0cf;
 }
+
+/* ---------- 背诵打卡 ---------- */
+.recite-wrap { max-width: 720px; margin: 0 auto; }
+.recite-meta { text-align: center; color: var(--ink-light); margin-top: -6px; }
+.recite-hint { font-size: 13px; color: var(--ink-light); margin: 10px 0 14px; }
+.recite-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.recite-status { font-size: 13px; color: var(--ink-light); }
+.recite-board {
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 22px 24px;
+}
+.recite-line {
+  position: relative; display: flex; flex-wrap: wrap; gap: 6px;
+  align-items: center; padding: 6px 0; cursor: text;
+}
+.recite-line-input { position: absolute; opacity: 0; width: 1px; height: 1px; border: 0; padding: 0; }
+.recite-box {
+  width: 34px; height: 40px; line-height: 38px; text-align: center;
+  font-size: 19px; font-family: "KaiTi", "STKaiti", "楷体", serif;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--paper); color: var(--ink);
+}
+.recite-line.active .recite-box { border-color: var(--gold); }
+.recite-box.focused { border-color: var(--vermilion); box-shadow: 0 0 0 2px rgba(157, 41, 51, .15); }
+.recite-box.ok { background: rgba(94, 168, 80, .22); border-color: #7fb069; }
+.recite-box.bad { background: rgba(226, 109, 92, .22); border-color: #e26d5c; }
+.recite-punct {
+  font-size: 19px; line-height: 40px; height: 40px;
+  font-family: "KaiTi", "STKaiti", "楷体", serif; color: var(--ink-light);
+}
+.recite-gap { height: 14px; }
+.recite-reveal { margin-top: 16px; padding: 14px 18px; border: 1px dashed var(--border); border-radius: 6px; }
+.recite-success { margin-top: 16px; }
+.btn-recite {
+  display: block; text-align: center; padding: 9px 0; margin-bottom: 12px;
+  background: var(--gold); color: #fff !important; border-radius: 4px; font-size: 15px;
+}
+.btn-recite:hover { filter: brightness(1.08); }
+.btn-ai { margin-top: 4px; }
+.ai-status { font-size: 13px; color: var(--ink-light); margin-left: 8px; }
+.ai-status.err { color: #b3261e; }

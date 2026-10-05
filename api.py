@@ -12,7 +12,7 @@ from functools import wraps
 
 from flask import Blueprint, jsonify, request, session
 
-from models import Poem, User, UserPoem, db
+from models import Poem, ReciteLog, User, UserPoem, db
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
@@ -54,7 +54,8 @@ def _poem_json(p, fav=False):
         "id": p.id, "title": p.title, "author": p.author, "dynasty": p.dynasty,
         "content": p.content,
         "translation": p.translation or "", "annotation": p.annotation or "",
-        "appreciation": p.appreciation or "", "is_favorite": fav,
+        "appreciation": p.appreciation or "", "background": p.background or "",
+        "is_favorite": fav,
     }
 
 
@@ -281,6 +282,29 @@ def api_save_note(poem_id):
                   updated_at=rec.updated_at.strftime("%Y-%m-%d %H:%M:%S") if rec.updated_at else None)
 
 
+@api_bp.route("/poems/<int:poem_id>/recite", methods=["POST"])
+@api_login_required
+def api_recite_checkin(poem_id):
+    """背诵全对后的打卡（客户端本地判分，服务端只负责记录）"""
+    u = get_token_user()
+    db.get_or_404(Poem, poem_id)
+    db.session.add(ReciteLog(user_id=u.id, poem_id=poem_id))
+    db.session.commit()
+    logs = ReciteLog.query.filter_by(user_id=u.id).order_by(ReciteLog.created_at.desc()).all()
+    today = datetime.now().date()
+    days = sorted({r.created_at.date() for r in logs}, reverse=True)
+    streak = 0
+    if days and (days[0] == today or (today - days[0]).days == 1):
+        streak = 1
+        for prev, cur in zip(days, days[1:]):
+            if (prev - cur).days == 1:
+                streak += 1
+            else:
+                break
+    return jsonify(ok=True, today_checked=today in set(days), streak=streak,
+                   total=len(logs), poems=len({r.poem_id for r in logs}))
+
+
 @api_bp.route("/tags")
 @api_login_required
 def api_tags():
@@ -320,11 +344,25 @@ def api_stats():
             dyn_stat[r.poem.dynasty] = dyn_stat.get(r.poem.dynasty, 0) + 1
     total = Poem.query.count()
     touched = len({r.poem_id for r in records if r.is_favorite or r.note or r.tags})
+    # 背诵打卡汇总
+    logs = ReciteLog.query.filter_by(user_id=u.id).order_by(ReciteLog.created_at.desc()).all()
+    today = datetime.now().date()
+    days = sorted({r.created_at.date() for r in logs}, reverse=True)
+    streak = 0
+    if days and (days[0] == today or (today - days[0]).days == 1):
+        streak = 1
+        for prev, cur in zip(days, days[1:]):
+            if (prev - cur).days == 1:
+                streak += 1
+            else:
+                break
     return jsonify({
         "total_poems": total, "touched": touched,
         "favorite": fav, "note": note, "tagged": tagged,
         "tags": [{"name": t, "count": c} for t, c in sorted(tag_stat.items(), key=lambda x: -x[1])],
         "dynasties": [{"name": d, "count": c} for d, c in sorted(dyn_stat.items(), key=lambda x: -x[1])],
+        "recite": {"today_checked": today in set(days), "streak": streak,
+                   "total": len(logs), "poems": len({r.poem_id for r in logs})},
     })
 
 

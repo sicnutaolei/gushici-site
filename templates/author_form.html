@@ -13,11 +13,44 @@
     <label class="form-label">卒年</label>
     <input type="text" name="death_year" value="{{ form.death_year }}" placeholder="如：762 / 约762">
     <label class="form-label">生平简介</label>
-    <textarea name="bio" rows="8" placeholder="概述性生平介绍，支持多句…">{{ form.bio }}</textarea>
+    <textarea name="bio" rows="8" placeholder="概述性生平介绍，支持多句…" id="bioField">{{ form.bio }}</textarea>
+    <button type="button" class="btn-ghost btn-ai" id="aiBioBtn">🤖 AI 生成生平</button>
+    <span class="ai-status" id="aiBioStatus"></span>
     <div class="form-actions">
       <button type="submit" class="btn-primary">保存</button>
       <a class="btn-ghost" href="{{ url_for('author_view', name=name) }}">取消</a>
     </div>
   </form>
 </div>
+<script>
+(function () {
+  var btn = document.getElementById('aiBioBtn');
+  var status = document.getElementById('aiBioStatus');
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    status.className = 'ai-status';
+    status.textContent = 'AI 生成中，约需十几秒…';
+    var dynasty = document.querySelector('input[name=dynasty]').value;
+    fetch('{{ url_for("author_ai_bio", name=name) | safe }}', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({dynasty: dynasty})
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok) {
+        document.querySelector('input[name=zihao]').value = d.zihao || '';
+        document.querySelector('input[name=birth_year]').value = d.birth_year || '';
+        document.querySelector('input[name=death_year]').value = d.death_year || '';
+        document.getElementById('bioField').value = d.bio || '';
+        status.textContent = '已生成，请核对（尤其生卒年）后再点「保存」';
+      } else {
+        status.className = 'ai-status err';
+        status.textContent = d.error || '生成失败，请重试';
+      }
+    }).catch(function () {
+      status.className = 'ai-status err';
+      status.textContent = '网络异常，请重试';
+    }).finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
 {% endblock %}

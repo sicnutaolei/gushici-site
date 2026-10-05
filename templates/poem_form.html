@@ -18,10 +18,45 @@
     <textarea name="annotation" rows="5">{{ form.annotation }}</textarea>
     <label class="form-label">赏析</label>
     <textarea name="appreciation" rows="5">{{ form.appreciation }}</textarea>
+    <label class="form-label">创作背景（作者当时人生阶段 / 经历）</label>
+    <textarea name="background" rows="5" id="bgField">{{ form.background }}</textarea>
+    {% if not is_new %}
+    <button type="button" class="btn-ghost btn-ai" id="aiBgBtn">🤖 AI 生成创作背景</button>
+    <span class="ai-status" id="aiBgStatus"></span>
+    {% endif %}
     <div class="form-actions">
       <button type="submit" class="btn-primary">{{ '添加' if is_new else '保存' }}</button>
       <a class="btn-ghost" href="{{ url_for('admin') }}">取消</a>
     </div>
   </form>
 </div>
+{% if not is_new %}
+<script>
+(function () {
+  var btn = document.getElementById('aiBgBtn');
+  if (!btn) return;
+  var status = document.getElementById('aiBgStatus');
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    status.className = 'ai-status';
+    status.textContent = 'AI 生成中，约需十几秒…';
+    fetch('{{ url_for("poem_ai_background", poem_id=poem.id) }}', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin', body: '{}'
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.ok && d.background) {
+        document.getElementById('bgField').value = d.background;
+        status.textContent = '已生成，请检查后点「保存」入库';
+      } else {
+        status.className = 'ai-status err';
+        status.textContent = d.error || '生成失败，请重试';
+      }
+    }).catch(function () {
+      status.className = 'ai-status err';
+      status.textContent = '网络异常，请重试';
+    }).finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

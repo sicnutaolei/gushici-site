@@ -21,6 +21,11 @@
     <div class="stat-num">{{ tags_sorted|length }}</div>
     <div class="stat-label">个标签</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-num">{% if recite_today %}✓{% else %}{{ recite_streak }}{% endif %}</div>
+    <div class="stat-label">今日打卡{% if not recite_today %} · 连续{% endif %}</div>
+    <div class="stat-sub">连续 {{ recite_streak }} 天 · 累计 {{ recite_total }} 次 · 覆盖 {{ recite_poems }} 首</div>
+  </div>
 </div>
 
 <div class="layout">
@@ -39,6 +44,22 @@
       {% endfor %}
       {% else %}
       <p class="side-text">还没有使用标签。在诗词详情页给诗词打上标签（如「必背」「已背会」），这里会显示分布。</p>
+      {% endif %}
+    </div>
+
+    <div class="admin-section">
+      <h2>最近背诵</h2>
+      {% if recite_recent %}
+      {% for r in recite_recent %}
+      <div class="bar-row">
+        <a class="bar-name" href="{{ url_for('poem_detail', poem_id=r.poem_id) }}">《{{ r.poem.title }}》</a>
+        <div class="bar-track"></div>
+        <span class="bar-count">{{ r.created_at.strftime('%m-%d %H:%M') }}</span>
+      </div>
+      {% endfor %}
+      <p class="side-text">在诗词详情页点「📝 背诵打卡」开始背诵，全对自动记一次打卡。</p>
+      {% else %}
+      <p class="side-text">还没有背诵记录。打开任意一首诗词详情页，点「📝 背诵打卡」试试——只给标题作者和标点，全对自动打卡。</p>
       {% endif %}
     </div>
 
