@@ -68,14 +68,21 @@
     <div class="side-card">
       <h3 class="side-title">我的学习记录</h3>
       {% if cur_user %}
-      <a class="btn-recite" href="{{ url_for('recite', poem_id=poem.id) }}">📝 背诵打卡</a>
-      <form method="post" action="{{ url_for('toggle_favorite', poem_id=poem.id) }}" class="fav-form">
-        {% if record and record.is_favorite %}
-        <button type="submit" class="btn-fav btn-fav-on">♥ 已喜欢（点击取消）</button>
-        {% else %}
-        <button type="submit" class="btn-fav">♡ 加入喜欢</button>
-        {% endif %}
-      </form>
+      <div class="side-actions">
+        <a class="btn-recite" href="{{ url_for('recite', poem_id=poem.id) }}">📝 背诵打卡</a>
+        <div class="side-actions-row">
+          <form method="post" action="{{ url_for('toggle_favorite', poem_id=poem.id) }}" class="fav-form">
+            {% if record and record.is_favorite %}
+            <button type="submit" class="btn-fav btn-fav-on" title="点击取消喜欢">♥ 已喜欢</button>
+            {% else %}
+            <button type="submit" class="btn-fav">♡ 加入喜欢</button>
+            {% endif %}
+          </form>
+          {% if cur_user.is_admin %}
+          <a class="btn-edit-poem" href="{{ url_for('poem_edit', poem_id=poem.id) }}">✎ 编辑</a>
+          {% endif %}
+        </div>
+      </div>
 
       <form method="post" action="{{ url_for('save_note', poem_id=poem.id) }}" class="note-form">
         <label class="form-label">标签（用逗号分隔，如：必背,思乡）</label>

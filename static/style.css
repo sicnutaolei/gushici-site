@@ -498,6 +498,30 @@ code {
   background: var(--gold); color: #fff !important; border-radius: 4px; font-size: 15px;
 }
 .btn-recite:hover { filter: brightness(1.08); }
+
+/* 详情页「我的学习记录」操作区：背诵打卡独占一行，加入喜欢与编辑并排一行
+   （侧栏仅约 235px，三等分会把文字压到换行，故主操作单独占行） */
+.side-actions { margin-bottom: 14px; }
+.side-actions .btn-recite {
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px; padding: 9px 0;
+}
+.side-actions-row { display: flex; align-items: stretch; gap: 8px; }
+.side-actions-row > .fav-form { flex: 1 1 0; min-width: 0; margin-bottom: 0; display: flex; }
+.side-actions-row > .btn-edit-poem { flex: 0 0 84px; }
+.side-actions .btn-fav {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  padding: 9px 4px; font-size: 14px; line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.btn-edit-poem {
+  display: flex; align-items: center; justify-content: center;
+  padding: 9px 0; background: #fff; color: var(--ink-light) !important;
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 14px; line-height: 1.2; white-space: nowrap;
+}
+.btn-edit-poem:hover { background: #f7f4ef; color: var(--vermilion) !important; border-color: var(--vermilion); }
 .btn-ai { margin-top: 4px; }
 .ai-status { font-size: 13px; color: var(--ink-light); margin-left: 8px; }
 .ai-status.err { color: #b3261e; }
